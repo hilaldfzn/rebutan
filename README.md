@@ -6,7 +6,7 @@ Built at [Monad Blitz Jakarta](https://luma.com/ksxks0qo) — 8 August 2026, Mar
 
 | | |
 |---|---|
-| Live app | _deploying_ |
+| **Live app** | **https://web-beige-six-14.vercel.app** |
 | Contract | [`0x87859caeD22239B6e8E3cB7998AAF7c5Fd4A0596`](https://testnet.monadscan.com/address/0x87859caeD22239B6e8E3cB7998AAF7c5Fd4A0596) |
 | Network | Monad Testnet — chain id **10143** |
 | Verified | [MonadVision](https://testnet.monadvision.com/address/0x87859caeD22239B6e8E3cB7998AAF7c5Fd4A0596) · [Monadscan](https://testnet.monadscan.com/address/0x87859caeD22239B6e8E3cB7998AAF7c5Fd4A0596) — perfect match |

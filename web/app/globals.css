@@ -7,32 +7,90 @@
  * light source. A light mode would be a liability on the wall and irrelevant on
  * the phones, so there is no `prefers-color-scheme` branch: the ground is dark
  * everywhere, always.
+ *
+ * The ground carries a violet cast rather than being neutral black. It ties to
+ * Monad without quoting its logo, and it makes the amber crown read as warm
+ * metal against it instead of as a yellow blob on grey.
  */
 :root {
-  --background: #0a0a0a;
-  --foreground: #ededed;
+  --ground: #0b0a10;
+  --surface: #141220;
+  --line: #241f38;
+
+  --ink: #edeaf6;
+  --ink-muted: #8b84a8;
+  --ink-faint: #5b5474;
+
+  /* Crown. The one warm colour, spent only on what you are fighting over. */
+  --crown: #ffb02e;
+  --crown-dim: #b87d16;
+
+  /* Monad's violet, used for structure and the chain itself. */
+  --violet: #836ef9;
+  --violet-dim: #4a3d99;
+
+  /* Stage 3. Danger, and nothing else may use it. */
+  --danger: #ff4d6d;
+
+  --background: var(--ground);
+  --foreground: var(--ink);
 }
 
 @theme inline {
+  --color-ground: var(--ground);
+  --color-surface: var(--surface);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-crown: var(--crown);
+  --color-crown-dim: var(--crown-dim);
+  --color-violet: var(--violet);
+  --color-violet-dim: var(--violet-dim);
+  --color-danger: var(--danger);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+
   --font-sans: var(--font-archivo);
   --font-mono: var(--font-archivo);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--ground);
+  color: var(--ink);
   font-family: var(--font-archivo), system-ui, sans-serif;
 }
 
 /*
- * Figures must not reflow as they tick. The reign counter changes 2.5 times a
- * second; proportional digits would make it jitter, which reads as a broken
- * display from the back of a hall rather than a fast one.
+ * Figures must not reflow as they tick. The counters change 2.5 times a second;
+ * proportional digits would jitter, which reads as a broken display from the
+ * back of a hall rather than a fast one.
  */
-.tabular-nums,
-.font-mono {
+.tabular-nums {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
+}
+
+/*
+ * Display setting for the numbers that carry the page. Archivo's heavier grades
+ * tighten up considerably at size, so the tracking is pulled in by hand.
+ */
+.display {
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 0.9;
+}
+
+/* The crown pulses only while someone holds it — motion that means something. */
+@keyframes crown-breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.72; }
+}
+.breathe {
+  animation: crown-breathe 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .breathe { animation: none; }
 }
