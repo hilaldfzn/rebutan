@@ -2,6 +2,8 @@ import Link from "next/link";
 
 import {Crown, TickField} from "@/components/Crown";
 import {LiveBlockTicker} from "@/components/LiveBlockTicker";
+import {LiveStats} from "@/components/LiveStats";
+import {TIERS} from "@/lib/game";
 import {
     CHAIN_ID,
     FORTIFY_COST_BLOCKS,
@@ -69,22 +71,31 @@ export default function Landing() {
                     </div>
                 </section>
 
+                {/* ── Live session ─────────────────────────────────────────── */}
+                <section className="flex flex-col gap-5">
+                    <SectionLabel eyebrow="right now">The session on chain</SectionLabel>
+                    <LiveStats />
+                </section>
+
                 {/* ── The rule ─────────────────────────────────────────────── */}
                 <section className="flex flex-col gap-8">
-                    <SectionLabel>Four verbs, one screen</SectionLabel>
+                    <SectionLabel eyebrow="how it plays">Three moves</SectionLabel>
 
                     <div className="grid gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-3">
                         <Mechanic
+                            index="01"
                             title="Steal"
                             cost="gas only"
                             body={`Take the crown from whoever has it. Free — but every steal you make lengthens your own cooldown by three blocks. Steals are rationed by time, never by money, so running low on MON can't eliminate you.`}
                         />
                         <Mechanic
+                            index="02"
                             title="Fortify"
                             cost={`+${FORTIFY_PROTECT_BLOCKS} / −${FORTIFY_COST_BLOCKS}`}
                             body={`Holding used to be passive. Now you can buy ${FORTIFY_PROTECT_BLOCKS} blocks of protection by forfeiting ${FORTIFY_COST_BLOCKS} blocks of earnings. Defend a lead, or stay exposed and keep earning at full rate.`}
                         />
                         <Mechanic
+                            index="03"
                             title="Stages"
                             cost="1× → 2× → 3×"
                             body="The session runs in three stages and each one pays more than the last. Falling behind early is recoverable, and the final third decides almost everything."
@@ -149,6 +160,34 @@ export default function Landing() {
                     </p>
                 </section>
 
+                {/* ── Progression ──────────────────────────────────────────── */}
+                <section className="flex flex-col gap-6">
+                    <SectionLabel eyebrow="what survives the session">The Reign Record</SectionLabel>
+
+                    <p className="max-w-2xl leading-relaxed text-ink-muted">
+                        Sessions end and pots are paid out, but every block you have ever held
+                        accumulates against your address permanently. It cannot be transferred,
+                        bought, or reset — the only way to move up is to have actually held the
+                        crown while people were trying to take it from you.
+                    </p>
+
+                    <div className="rounded-2xl border border-line bg-surface px-6 py-2">
+                        {TIERS.map((t, i) => (
+                            <TierRow
+                                key={t.name}
+                                name={t.name}
+                                at={t.at}
+                                isLast={i === TIERS.length - 1}
+                            />
+                        ))}
+                    </div>
+
+                    <p className="text-sm text-ink-faint">
+                        Status only. A tier never grants a mechanical advantage — a newcomer and a
+                        Tyrant steal on exactly the same terms.
+                    </p>
+                </section>
+
                 {/* ── Footer ───────────────────────────────────────────────── */}
                 <footer className="flex flex-col gap-4 border-t border-line pt-8 text-sm">
                     <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-ink-faint">
@@ -182,24 +221,64 @@ export default function Landing() {
     );
 }
 
-function SectionLabel({children}: Readonly<{children: React.ReactNode}>) {
+/**
+ * Section headings carry weight rather than whispering.
+ *
+ * The earlier treatment was a small tracked-out label — tasteful and forgettable.
+ * A room reading this on a phone between demos needs the structure to be
+ * scannable at a glance, so headings are set large and uppercase with the eyebrow
+ * demoted to a supporting line.
+ */
+function SectionLabel({
+    children,
+    eyebrow,
+}: Readonly<{children: React.ReactNode; eyebrow?: string}>) {
     return (
-        <h2 className="text-xs font-bold uppercase tracking-[0.28em] text-ink-faint">{children}</h2>
+        <div className="flex flex-col gap-2">
+            {eyebrow ? (
+                <span className="text-[11px] font-bold uppercase tracking-[0.28em] text-violet">
+                    {eyebrow}
+                </span>
+            ) : null}
+            <h2 className="display text-3xl uppercase text-ink sm:text-4xl">{children}</h2>
+        </div>
     );
 }
 
 function Mechanic({
+    index,
     title,
     cost,
     body,
-}: Readonly<{title: string; cost: string; body: string}>) {
+}: Readonly<{index: string; title: string; cost: string; body: string}>) {
     return (
         <div className="flex flex-col gap-3 bg-ground p-6">
+            {/* Numbered steps: the reader should be able to tell how many ideas
+                they have to hold before committing to reading any of them. */}
+            <span className="display text-2xl tabular-nums text-violet-dim">{index}</span>
             <div className="flex items-baseline justify-between gap-2">
                 <h3 className="text-xl font-bold text-ink">{title}</h3>
                 <span className="text-[11px] uppercase tracking-wider text-ink-faint">{cost}</span>
             </div>
             <p className="text-sm leading-relaxed text-ink-muted">{body}</p>
+        </div>
+    );
+}
+
+function TierRow({
+    name,
+    at,
+    isLast,
+}: Readonly<{name: string; at: bigint; isLast: boolean}>) {
+    return (
+        <div className="flex items-baseline justify-between gap-4 py-3">
+            <span className={`text-base font-bold ${isLast ? "text-crown" : "text-ink"}`}>
+                {name}
+            </span>
+            <span className="flex-1 border-b border-dashed border-line" />
+            <span className="tabular-nums text-sm text-ink-muted">
+                {at === 0n ? "from the first block" : `${at.toLocaleString("en-US")} blocks`}
+            </span>
         </div>
     );
 }

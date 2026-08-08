@@ -112,6 +112,38 @@ export function estimatedPayout(
     return amount;
 }
 
+/**
+ * Reign Record tiers.
+ *
+ * The progression ladder is the one device worth borrowing from PassChick's
+ * Eggpass: a named rank makes an abstract counter feel like standing, and it
+ * gives a returning player something to be. Ours is throne-themed rather than
+ * arcade-themed, and cosmetic only — a tier that granted a mechanical edge would
+ * unbalance a single-session demo and punish anyone playing for the first time.
+ */
+export const TIERS = [
+    {name: "Pretender", at: 0n},
+    {name: "Claimant", at: 100n},
+    {name: "Regent", at: 500n},
+    {name: "Sovereign", at: 2_000n},
+    {name: "Tyrant", at: 10_000n},
+] as const;
+
+export function tierOf(record: bigint): {name: string; index: number; next: bigint | null} {
+    let index = 0;
+    for (let i = TIERS.length - 1; i >= 0; i--) {
+        if (record >= TIERS[i].at) {
+            index = i;
+            break;
+        }
+    }
+    return {
+        name: TIERS[index].name,
+        index,
+        next: index < TIERS.length - 1 ? TIERS[index + 1].at : null,
+    };
+}
+
 /** MON, trimmed to a fixed number of decimals without scientific notation. */
 export function formatMon(wei: bigint, decimals = 4): string {
     const whole = wei / 10n ** 18n;
