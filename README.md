@@ -4,14 +4,23 @@
 
 Built at [Monad Blitz Jakarta](https://luma.com/ksxks0qo) — 8 August 2026, Markas KOMDIGI.
 
-> ⚠️ Placeholders below are filled in at deploy time (before 17:45 WIB). See [spec/spec-rebutan.md](spec/spec-rebutan.md) §I.
+| | |
+|---|---|
+| Live app | _deploying_ |
+| Contract | [`0x87859caeD22239B6e8E3cB7998AAF7c5Fd4A0596`](https://testnet.monadscan.com/address/0x87859caeD22239B6e8E3cB7998AAF7c5Fd4A0596) |
+| Network | Monad Testnet — chain id **10143** |
+| Verified | [MonadVision](https://testnet.monadvision.com/address/0x87859caeD22239B6e8E3cB7998AAF7c5Fd4A0596) · [Monadscan](https://testnet.monadscan.com/address/0x87859caeD22239B6e8E3cB7998AAF7c5Fd4A0596) — perfect match |
+
+### Measured on-chain
+
+Not estimates — these are from the live deployment above.
 
 | | |
 |---|---|
-| Live app | _TBD_ |
-| Contract | `_TBD_` |
-| Network | Monad Testnet — chain id **10143** |
-| Explorer | _TBD_ |
+| `join()` | 126,831 gas |
+| `steal()` | 132,416 gas |
+| Runtime size | 12,767 bytes (Monad's limit is 128 kb) |
+| Contract tests | 27 passing, incl. a 256-run fuzz on payout solvency |
 
 ---
 
