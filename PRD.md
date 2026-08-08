@@ -1,3 +1,5 @@
+PssaP
+
 # PRD — Rebutan
 
 **Product:** Rebutan · **Event:** Monad Blitz Jakarta, 8 August 2026 · **Network:** Monad Testnet (10143)
@@ -23,13 +25,13 @@ Two framings, and only the second one goes in the pitch.
 
 ## 3. Goals
 
-| # | Goal | Measure |
-|---|---|---|
-| G1 | Ship a working, deployed dApp before 17:30 | contract live on testnet, web app live, address in README |
-| G2 | Be understood in one sentence | a judge can restate the rule after 10 seconds |
-| G3 | Give the room something to *do*, not watch | ≥15 distinct addresses join during the demo session |
-| G4 | Make the Monad dependency visible, not asserted | no spinner anywhere; earnings tick ~2.5×/second |
-| G5 | Survive the anti-clone rule | the block-denominated mechanic leads the pitch |
+| #  | Goal                                            | Measure                                                   |
+| -- | ----------------------------------------------- | --------------------------------------------------------- |
+| G1 | Ship a working, deployed dApp before 17:30      | contract live on testnet, web app live, address in README |
+| G2 | Be understood in one sentence                   | a judge can restate the rule after 10 seconds             |
+| G3 | Give the room something to*do*, not watch     | ≥15 distinct addresses join during the demo session      |
+| G4 | Make the Monad dependency visible, not asserted | no spinner anywhere; earnings tick ~2.5×/second          |
+| G5 | Survive the anti-clone rule                     | the block-denominated mechanic leads the pitch            |
 
 ## 4. Non-goals
 
@@ -37,22 +39,22 @@ Polish. Completeness. A business model. Mainnet. Real value. Mobile app. Account
 
 ## 5. Users
 
-| Persona | Context | Needs |
-|---|---|---|
+| Persona                              | Context                                                | Needs                                                 |
+| ------------------------------------ | ------------------------------------------------------ | ----------------------------------------------------- |
 | **Player** (~30 teams present) | phone, dim hall, already holds a funded testnet wallet | join in one tap, understand instantly, feel the steal |
-| **Spectator** | watching the projector | see who holds it and who is winning, without a wallet |
-| **Judge / peer voter** | 3 minutes, then votes | grasp the mechanic and why it needs Monad |
+| **Spectator**                  | watching the projector                                 | see who holds it and who is winning, without a wallet |
+| **Judge / peer voter**         | 3 minutes, then votes                                  | grasp the mechanic and why it needs Monad             |
 
 ## 6. The game
 
 ### 6.1 Four verbs
 
-| Verb | Who | Cost | Effect |
-|---|---|---|---|
-| **JOIN** | anyone, once | 0.1 MON (fixed, never escalates) | enter the session, add to pot |
-| **STEAL** | any joined player | gas only | take the crown; your own cooldown grows +3 blocks per steal you make |
-| **FORTIFY** | the holder, once per reign | gas only | extend crown protection to +8 blocks, but forfeit 4 blocks of earnings |
-| **CLAIM** | any player, after settle | gas only | take your payout |
+| Verb              | Who                        | Cost                             | Effect                                                                 |
+| ----------------- | -------------------------- | -------------------------------- | ---------------------------------------------------------------------- |
+| **JOIN**    | anyone, once               | 0.1 MON (fixed, never escalates) | enter the session, add to pot                                          |
+| **STEAL**   | any joined player          | gas only                         | take the crown; your own cooldown grows +3 blocks per steal you make   |
+| **FORTIFY** | the holder, once per reign | gas only                         | extend crown protection to +8 blocks, but forfeit 4 blocks of earnings |
+| **CLAIM**   | any player, after settle   | gas only                         | take your payout                                                       |
 
 ### 6.2 The core loop
 
@@ -69,10 +71,10 @@ JOIN → steal the crown → earn every block you hold it
 The session runs in three stages by block range, with no intermission:
 
 | Stage | Share of session | Blocks held count |
-|---|---|---|
-| 1 | first third | **1×** |
-| 2 | middle third | **2×** |
-| 3 | final third | **3×** |
+| ----- | ---------------- | ----------------- |
+| 1     | first third      | **1×**     |
+| 2     | middle third     | **2×**     |
+| 3     | final third      | **3×**     |
 
 Stages give the session pacing and make falling behind early recoverable. Stage 3 is a scheduled climax you can time the pitch around.
 
@@ -85,11 +87,11 @@ The pot splits:
 
 This is the mechanic that creates strategy rather than reflex. Two incompatible plans exist:
 
-| Plan | How it plays | Weakness |
-|---|---|---|
-| **Accumulate** | steal often in Stage 1 when it's cheap, bank many short reigns | burns cooldown; wins no Long Reign bonus |
-| **Spike** | hoard steals, take the crown in Stage 3, FORTIFY, hold one enormous reign | one steal at the wrong moment and the plan is worthless |
-| **Deny** | steal from the leader purely to break their unbroken reign | you gain little yourself; pure spite play |
+| Plan                 | How it plays                                                              | Weakness                                                |
+| -------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------- |
+| **Accumulate** | steal often in Stage 1 when it's cheap, bank many short reigns            | burns cooldown; wins no Long Reign bonus                |
+| **Spike**      | hoard steals, take the crown in Stage 3, FORTIFY, hold one enormous reign | one steal at the wrong moment and the plan is worthless |
+| **Deny**       | steal from the leader purely to break their unbroken reign                | you gain little yourself; pure spite play               |
 
 **Denial is the good part.** It means players act against each other with intent, rather than all grabbing at the same object.
 
@@ -113,34 +115,37 @@ The anti-clone rule ([IDEAS.md](IDEAS.md) V4) is aimed straight at our weakest a
 
 ⚠️ **Time is the binding constraint.** Estimates assume a blockchain-light team writing everything from scratch (CON-009 forbids reuse).
 
-| P | Feature | Contract | Client | Est. |
-|---|---|---|---|---|
-| **P0** | JOIN + pot | payable, `joined` map | connect + join button | 20m |
-| **P0** | STEAL + cooldown + MIN_REIGN | core `steal()` | steal button, cooldown state | 30m |
-| **P0** | Earn per block, stage-weighted | `_weighted` across 3 stages | live earnings counter | 40m |
-| **P0** | Settle + pro-rata CLAIM | pull payment | claim button | 30m |
-| **P0** | Live crown + leaderboard | events | `eth_subscribe` | 40m |
-| **P1** | **FORTIFY** | `protectedUntil`, `since += 4` | fortify button, protected state | 25m |
-| **P1** | **Long Reign bonus (30%)** | track longest unbroken reign | second leaderboard | 25m |
-| **P2** | `/wall` projector view | — | route | 30m |
-| **P2** | Reign Record tiers | mapping + view | tier badge | 20m |
+| P            | Feature                          | Contract                           | Client                          | Est. |
+| ------------ | -------------------------------- | ---------------------------------- | ------------------------------- | ---- |
+| **P0** | JOIN + pot                       | payable,`joined` map             | connect + join button           | 20m  |
+| **P0** | STEAL + cooldown + MIN_REIGN     | core`steal()`                    | steal button, cooldown state    | 30m  |
+| **P0** | Earn per block, stage-weighted   | `_weighted` across 3 stages      | live earnings counter           | 40m  |
+| **P0** | Settle + pro-rata CLAIM          | pull payment                       | claim button                    | 30m  |
+| **P0** | Live crown + leaderboard         | events                             | `eth_subscribe`               | 40m  |
+| **P1** | **FORTIFY**                | `protectedUntil`, `since += 4` | fortify button, protected state | 25m  |
+| **P1** | **Long Reign bonus (30%)** | track longest unbroken reign       | second leaderboard              | 25m  |
+| **P2** | `/wall` projector view         | —                                 | route                           | 30m  |
+| **P2** | Reign Record tiers               | mapping + view                     | tier badge                      | 20m  |
 
 **P0 is the shippable product.** P1 is where the depth lives — cut it only if 15:00 arrives with no deployed contract. P2 is presentation.
 
 ## 9. User journeys
 
 **First-time player (target: under 20 seconds to first steal)**
+
 1. Scans QR → page loads showing the crown already contested
 2. Taps JOIN, approves 0.1 MON → pot ticks up on the projector
 3. Taps STEAL → **no spinner**, crown is theirs, earnings start climbing
 4. Sees "cooling down · 3 blocks" and understands the constraint without being told
 
 **Holder under pressure**
+
 1. Holds the crown, earnings climbing, Stage 3 multiplier active
 2. Sees protection expiring in 1 block and rivals off cooldown
 3. Decides: FORTIFY (safe, slower) or ride it out (exposed, full rate)
 
 **Endgame**
+
 1. Stage 3 — every block worth triple
 2. Longest-reign bonus still unclaimed; leader is 6 blocks from taking it
 3. Someone spends their last steal purely to deny it
@@ -159,15 +164,15 @@ Ship only if all are true:
 
 ## 11. Risks
 
-| Risk | Severity | Mitigation |
-|---|---|---|
-| **Scope kills the ship** — P0+P1 is ~4h of contract+client from scratch | **High** | §12 de-scope ladder. P0 alone is a complete product |
-| Fork repo doesn't exist yet | **High** | Ask an organiser now; build locally in the meantime |
-| Money bugs strand the pot | High | Money tests are never-cut; pull payments; no admin path |
-| `_weighted` across stage boundaries is the one tricky function | Medium | Write its tests first; max 3 loop iterations, no unbounded loops |
-| Nobody joins during the demo | Medium | Pre-joined team phones seed it; the room is already onboarded |
-| Reads as a clone | Medium | Lead the pitch with the block-denomination twist (§7) |
-| Players throttled to 1 tx/1.2s under 10 MON | Low | `MIN_REIGN = 3 blocks` matches the throttle — it shapes the game |
+| Risk                                                                           | Severity       | Mitigation                                                          |
+| ------------------------------------------------------------------------------ | -------------- | ------------------------------------------------------------------- |
+| **Scope kills the ship** — P0+P1 is ~4h of contract+client from scratch | **High** | §12 de-scope ladder. P0 alone is a complete product                |
+| Fork repo doesn't exist yet                                                    | **High** | Ask an organiser now; build locally in the meantime                 |
+| Money bugs strand the pot                                                      | High           | Money tests are never-cut; pull payments; no admin path             |
+| `_weighted` across stage boundaries is the one tricky function               | Medium         | Write its tests first; max 3 loop iterations, no unbounded loops    |
+| Nobody joins during the demo                                                   | Medium         | Pre-joined team phones seed it; the room is already onboarded       |
+| Reads as a clone                                                               | Medium         | Lead the pitch with the block-denomination twist (§7)              |
+| Players throttled to 1 tx/1.2s under 10 MON                                    | Low            | `MIN_REIGN = 3 blocks` matches the throttle — it shapes the game |
 
 ## 12. Build order and de-scope ladder
 

@@ -1,20 +1,13 @@
 "use client";
 
-import {useEffect, useState} from "react";
+import {useEffect, useMemo, useState} from "react";
 // wagmi v3 renamed useAccount -> useConnection and moved the mutation hooks to
 // mutate/mutateAsync; the old names still work but are deprecated aliases.
-import {
-    useConnect,
-    useConnection,
-    useConnectors,
-    useSwitchChain,
-    useWriteContractSync,
-} from "wagmi";
+import {useConnect, useConnection, useConnectors, useSwitchChain, useWriteContractSync} from "wagmi";
 import {parseEther} from "viem";
 import Link from "next/link";
 
-import {Arena, CrownMark} from "@/components/Arena";
-
+import {Arena, CrownMark, seatOf} from "@/components/Arena";
 import {rebutanAbi} from "@/lib/abi";
 import {
     CHAIN_ID,
@@ -31,11 +24,21 @@ import {
     formatMon,
     pendingWeighted,
     rawReign,
+    tierOf,
     type Session,
 } from "@/lib/game";
+import {useSessionPlayers} from "@/lib/usePlayers";
 import {useLiveBlock, useRebutan} from "@/lib/useRebutan";
 
-export default function Page() {
+/**
+ * The game screen.
+ *
+ * Structured as a scene with a HUD floating over it, not a page with controls
+ * underneath — the arrangement PassChick's /play uses, and the single biggest
+ * reason its screen reads as a game. Corners carry state, the centre carries the
+ * board, and exactly one button is ever the obvious thing to press.
+ */
+export default function Play() {
     const {address: player, isConnected, chainId} = useConnection();
     const connectors = useConnectors();
     const {mutate: connect} = useConnect();
@@ -48,6 +51,8 @@ export default function Page() {
     const [error, setError] = useState<string | null>(null);
 
     const s = g.session;
+    const roster = useSessionPlayers(g.sessionId, s?.startBlock);
+
     const isHolder = Boolean(s && player && s.holder.toLowerCase() === player.toLowerCase());
     const stage = s ? currentStage(s, block) : 1;
     const over = Boolean(s && block >= s.endsAt);
@@ -56,8 +61,38 @@ export default function Page() {
     const payout = s
         ? estimatedPayout(s, player, g.bankedWeighted, block, g.enduranceBps, g.longReignBps)
         : 0n;
+    const tier = tierOf(g.reignRecord);
 
-    // Drop a stale error the moment the world changes underneath it.
+    // Blocks until the multiplier changes — the HUD's countdown timer.
+    const toNextZone = useMemo(() => {
+        if (!s) return null;
+        if (block < s.stage2At) return s.stage2At - block;
+        if (block < s.stage3At) return s.stage3At - block;
+        if (block < s.endsAt) return s.endsAt - block;
+        return null;
+    }, [s, block]);
+
+    // Seat the real roster. The holder is always seated even if the log scan
+    // missed them — an empty throne over a contested crown would be a lie.
+    const {labels, holderSeat} = useMemo(() => {
+        const map: Record<number, string> = {};
+        const taken = new Set<number>();
+        const place = (addr: string) => {
+            let seat = seatOf(addr);
+            for (let i = 0; i < 6 && taken.has(seat); i++) seat = (seat + 1) % 6;
+            taken.add(seat);
+            map[seat] = short(addr);
+            return seat;
+        };
+        let hSeat = 0;
+        if (s && s.holder !== ZERO_ADDRESS) hSeat = place(s.holder);
+        for (const p of roster) {
+            if (s && p.toLowerCase() === s.holder.toLowerCase()) continue;
+            place(p);
+        }
+        return {labels: map, holderSeat: hSeat};
+    }, [roster, s]);
+
     useEffect(() => setError(null), [s?.holder]);
 
     async function send(functionName: string, args: unknown[] = [], value?: bigint) {
@@ -65,8 +100,8 @@ export default function Page() {
         setBusy(true);
         setError(null);
         try {
-            // Resolves with the RECEIPT, not a pending hash — this is why the app
-            // has no spinner. By the time this await returns it is already on chain.
+            // Resolves with the RECEIPT, not a pending hash — this is why the
+            // screen never shows a spinner.
             await write({
                 address: g.address,
                 abi: rebutanAbi,
@@ -84,73 +119,122 @@ export default function Page() {
     }
 
     return (
-        <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col gap-5 px-5 py-6">
-            <header className="flex items-center justify-between">
-                <Link href="/" className="flex items-center gap-2 text-ink-muted hover:text-ink">
-                    <CrownMark className="h-5 w-5 text-crown" />
-                    <span className="display text-sm uppercase tracking-widest">Rebutan</span>
-                </Link>
-                <span className="text-xs tabular-nums text-ink-faint">#{block.toString()}</span>
-            </header>
-
-            <p className="text-sm leading-snug text-ink-muted">
-                Grab it. Hold it. Get paid every block —{" "}
-                <span className="text-ink">a block is 400ms.</span>
-            </p>
-
-            {!g.address ? (
-                <Notice>
-                    No contract configured. Append <code>?contract=0x…</code> to the URL.
-                </Notice>
-            ) : null}
-
-            <Crown
-                session={s}
-                isHolder={isHolder}
-                over={over}
-                stage={stage}
-                reign={reign}
-                earned={earned}
-            />
-
-            <div className="grid grid-cols-3 gap-3 text-center">
-                <Stat label="prize pot" value={s ? formatMon(s.pot, 2) : "—"} unit="MON" />
-                <Stat label="fighters" value={s ? String(s.players) : "—"} />
-                <Stat label="your cut" value={s ? formatMon(payout, 3) : "—"} unit="MON" hint="est" />
-            </div>
-
-            <div className="mt-auto flex flex-col gap-3">
-                {error ? <Notice tone="error">{error}</Notice> : null}
-
-                <Actions
-                    connected={isConnected}
-                    wrongNetwork={isConnected && chainId !== CHAIN_ID}
-                    hasConnector={connectors.length > 0}
-                    session={s}
-                    game={g}
-                    isHolder={isHolder}
-                    over={over}
-                    payout={payout}
-                    busy={busy}
-                    onConnect={() => connect({connector: connectors[0]})}
-                    onSwitch={() => switchChain({chainId: CHAIN_ID})}
-                    onSend={send}
+        <div className="relative flex min-h-dvh w-full flex-col overflow-hidden">
+            {/* ── SCENE ─────────────────────────────────────────────────── */}
+            <div className="absolute inset-0 grid place-items-center px-4">
+                <Arena
+                    className="w-full max-w-[560px] opacity-95"
+                    holderSeat={holderSeat}
+                    labels={labels}
+                    stage={stage}
+                    animate={!over}
                 />
-
-                <p className="text-center text-[11px] text-ink-faint">
-                    Monad Testnet · chain {CHAIN_ID}
-                    {g.reignRecord > 0n ? ` · career ${g.reignRecord} blocks` : ""}
-                </p>
             </div>
-        </main>
+
+            {/* ── HUD ───────────────────────────────────────────────────── */}
+            <div className="pointer-events-none relative flex min-h-dvh flex-col justify-between p-3 sm:p-4">
+                <div className="flex items-start justify-between gap-2">
+                    <div className="hud pointer-events-auto px-3 py-2">
+                        <div className="flex gap-5">
+                            <Readout label="blocks" value={reign.toString()} />
+                            <Readout label="scored" value={earned.toString()} accent />
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col items-center gap-1.5">
+                        <div className="hud px-3 py-1.5">
+                            <span className="pixel text-[9px] uppercase text-crown">{tier.name}</span>
+                        </div>
+                        <div className="hud px-4 py-2 text-center">
+                            <div className="pixel text-[8px] uppercase text-ink-faint">
+                                {stage === 3 ? "final zone" : "next zone"}
+                            </div>
+                            <div
+                                className={`pixel text-base tabular-nums ${
+                                    stage === 3 ? "text-danger" : "text-ink"
+                                }`}
+                            >
+                                {toNextZone !== null ? toNextZone.toString() : "—"}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="pointer-events-auto flex flex-col items-end gap-1.5">
+                        <div className="hud-gold px-3 py-2">
+                            <span className="pixel text-[9px]">
+                                {player ? short(player) : "NO WALLET"}
+                            </span>
+                        </div>
+                        <div className="hud px-3 py-2">
+                            <span className="pixel text-[9px] text-crown">
+                                POT {s ? formatMon(s.pot, 2) : "—"}
+                            </span>
+                        </div>
+                        {error ? (
+                            <div className="hud-danger shake max-w-[210px] px-3 py-2">
+                                <span className="pixel text-[8px] leading-relaxed">{error}</span>
+                            </div>
+                        ) : null}
+                    </div>
+                </div>
+
+                <div className="flex items-end justify-between gap-3">
+                    <Link href="/" className="emblem pointer-events-auto" aria-label="Back to home">
+                        <CrownMark className="h-6 w-6 text-crown" />
+                    </Link>
+
+                    <div className="pointer-events-auto flex w-full max-w-sm flex-col gap-2">
+                        <Actions
+                            connected={isConnected}
+                            wrongNetwork={isConnected && chainId !== CHAIN_ID}
+                            hasConnector={connectors.length > 0}
+                            session={s}
+                            game={g}
+                            isHolder={isHolder}
+                            over={over}
+                            payout={payout}
+                            busy={busy}
+                            onConnect={() => connect({connector: connectors[0]})}
+                            onSwitch={() => switchChain({chainId: CHAIN_ID})}
+                            onSend={send}
+                        />
+                        <div className="hud px-3 py-1.5 text-center">
+                            <span className="pixel text-[8px] text-ink-faint">
+                                #{block.toString()} · CUT {formatMon(payout, 3)}
+                            </span>
+                        </div>
+                    </div>
+
+                    <a
+                        className="emblem pointer-events-auto"
+                        href={g.address ? addressUrl(g.address) : "#"}
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-label="View contract on explorer"
+                    >
+                        <span className="pixel text-[8px] text-cyan">0x</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function Readout({label, value, accent}: Readonly<{label: string; value: string; accent?: boolean}>) {
+    return (
+        <div>
+            <div className="pixel text-[8px] uppercase text-ink-faint">{label}</div>
+            <div className={`pixel text-base tabular-nums ${accent ? "text-cyan" : "text-ink"}`}>
+                {value}
+            </div>
+        </div>
     );
 }
 
 /**
- * The action area, as a flat sequence of early returns rather than nested
- * ternaries. There are eight mutually exclusive states here and they change
- * under time pressure mid-demo; a reader has to be able to check each one
- * against the contract's rules at a glance.
+ * Eight mutually exclusive states, as flat early returns. They change under time
+ * pressure mid-demo, so a reader must be able to check each against the
+ * contract's rules at a glance.
  */
 function Actions({
     connected,
@@ -181,57 +265,73 @@ function Actions({
 }>) {
     if (!connected) {
         return (
-            <Button onClick={onConnect} disabled={!hasConnector}>
+            <GameButton tone="gold" onClick={onConnect} disabled={!hasConnector}>
                 Connect wallet
-            </Button>
+            </GameButton>
         );
     }
 
     if (wrongNetwork) {
-        return <Button onClick={onSwitch}>Switch to Monad Testnet</Button>;
+        return (
+            <GameButton tone="blue" onClick={onSwitch}>
+                Switch to Monad
+            </GameButton>
+        );
     }
 
     if (over) {
         if (!session?.settled) {
             return (
-                <Button onClick={() => onSend("settle")} disabled={busy}>
+                <GameButton tone="blue" onClick={() => onSend("settle")} disabled={busy}>
                     End the round
-                </Button>
+                </GameButton>
             );
         }
         return (
-            <Button
+            <GameButton
+                tone="gold"
                 onClick={() => onSend("claim", [game.sessionId])}
                 disabled={!game.joined || game.claimed || busy}
             >
-                {game.claimed ? "Paid out" : `Cash out ${formatMon(payout, 3)} MON`}
-            </Button>
+                {game.claimed ? "Paid out" : `Cash out ${formatMon(payout, 3)}`}
+            </GameButton>
         );
     }
 
     if (!game.joined) {
         return (
-            <Button onClick={() => onSend("join", [], parseEther(STAKE_MON))} disabled={busy}>
-                Join the fight — {STAKE_MON} MON
-            </Button>
+            <GameButton
+                tone="gold"
+                onClick={() => onSend("join", [], parseEther(STAKE_MON))}
+                disabled={busy}
+            >
+                Join — {STAKE_MON} MON
+            </GameButton>
         );
     }
 
     return (
         <>
-            <Button
+            <GameButton
+                tone="danger"
                 onClick={() => onSend("steal")}
-                disabled={isHolder || game.cooldownRemaining > 0n || game.protectionRemaining > 0n || busy}
+                disabled={
+                    isHolder || game.cooldownRemaining > 0n || game.protectionRemaining > 0n || busy
+                }
             >
                 {stealLabel(isHolder, game.cooldownRemaining, game.protectionRemaining)}
-            </Button>
+            </GameButton>
 
             {isHolder ? (
-                <Button variant="ghost" onClick={() => onSend("fortify")} disabled={session?.fortified || busy}>
+                <GameButton
+                    tone="blue"
+                    onClick={() => onSend("fortify")}
+                    disabled={session?.fortified || busy}
+                >
                     {session?.fortified
-                        ? "Bolted down already"
-                        : `Fortify · +${FORTIFY_PROTECT_BLOCKS} safe / −${FORTIFY_COST_BLOCKS} paid`}
-                </Button>
+                        ? "Bolted down"
+                        : `Fortify +${FORTIFY_PROTECT_BLOCKS} / −${FORTIFY_COST_BLOCKS}`}
+                </GameButton>
             ) : null}
         </>
     );
@@ -239,157 +339,34 @@ function Actions({
 
 function stealLabel(isHolder: boolean, cooldown: bigint, protection: bigint): string {
     if (isHolder) return "You're wearing it";
-    if (cooldown > 0n) return `Cooling down · ${cooldown}`;
-    // Firing into a protected crown wastes real MON: Monad charges on gas_limit,
-    // so a reverted steal still costs full gas. The button stays hard-disabled.
-    if (protection > 0n) return `Locked down · ${protection}`;
+    if (cooldown > 0n) return `Cooling down ${cooldown}`;
+    // Firing at a protected crown wastes real MON — Monad charges on gas_limit,
+    // so a reverted steal still costs full gas. Hard-disabled, never hopeful.
+    if (protection > 0n) return `Locked down ${protection}`;
     return "Steal it";
 }
 
-function Crown({
-    session,
-    isHolder,
-    over,
-    stage,
-    reign,
-    earned,
-}: Readonly<{
-    session: Session | null;
-    isHolder: boolean;
-    over: boolean;
-    stage: 0 | 1 | 2 | 3;
-    reign: bigint;
-    earned: bigint;
-}>) {
-    let heading = "The crown";
-    if (over) heading = "Round over";
-    else if (isHolder) heading = "It's yours — hold on";
-
-    return (
-        <section className={`slab-lg bg-arena ${isHolder ? "bg-crown/15" : ""}`}>
-            <div
-                className={`display flex items-center justify-between px-4 py-2 text-[11px] uppercase tracking-widest text-outline ${
-                    isHolder ? "bg-crown" : "bg-violet"
-                }`}
-            >
-                <span>{heading}</span>
-                <StageBadge stage={stage} holding={isHolder} />
-            </div>
-
-            {/* The arena doubles as a live indicator: the crowned seat lights up
-                when the connected player is the one holding it. */}
-            <div className="flex items-center gap-4 px-5 pt-5">
-                <Arena className="h-24 w-24 shrink-0" holderSeat={isHolder ? 3 : 0} animate={!over} />
-                <div className="min-w-0">
-                    <div
-                        className={`display stroked text-6xl tabular-nums ${
-                            isHolder ? "text-crown" : "text-ink"
-                        }`}
-                    >
-                        {reign.toString()}
-                    </div>
-                    <div className="mt-1 text-[11px] font-bold uppercase tracking-wider text-ink-muted">
-                        blocks held · {earned.toString()} scored
-                    </div>
-                </div>
-            </div>
-
-            <div className="mt-4 flex items-center gap-2 border-t-[3px] border-outline px-5 py-3 text-sm">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-ink-faint">
-                    on the throne
-                </span>
-                {session && session.holder !== ZERO_ADDRESS ? (
-                    <a
-                        className="font-bold underline underline-offset-4 hover:text-crown"
-                        href={addressUrl(session.holder)}
-                        target="_blank"
-                        rel="noreferrer"
-                    >
-                        {short(session.holder)}
-                    </a>
-                ) : (
-                    <span className="font-bold text-ink-muted">nobody yet</span>
-                )}
-            </div>
-        </section>
-    );
-}
-
-function StageBadge({stage, holding}: Readonly<{stage: 0 | 1 | 2 | 3; holding: boolean}>) {
-    if (stage === 0) return <span className="opacity-70">ended</span>;
-    // Stage 3 shouts, because it is worth triple and the round is nearly gone.
-    if (stage === 3) {
-        return (
-            <span className="slab-sm bg-danger px-2 py-0.5 text-outline">surge · 3×</span>
-        );
-    }
-    return (
-        <span className={holding ? "opacity-80" : "opacity-90"}>
-            zone {stage} · {stage}×
-        </span>
-    );
-}
-
-function Stat({
-    label,
-    value,
-    unit,
-    hint,
-}: Readonly<{label: string; value: string; unit?: string; hint?: string}>) {
-    return (
-        <div className="slab-sm bg-arena px-2 py-3">
-            <div className="display text-lg tabular-nums text-ink">
-                {value}
-                {unit ? <span className="ml-1 text-[10px] text-ink-faint">{unit}</span> : null}
-            </div>
-            <div className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">
-                {label}
-                {hint ? <span className="normal-case"> ({hint})</span> : null}
-            </div>
-        </div>
-    );
-}
-
-function Button({
+function GameButton({
     children,
     onClick,
     disabled,
-    variant = "solid",
+    tone,
 }: Readonly<{
     children: React.ReactNode;
     onClick: () => void;
     disabled?: boolean;
-    variant?: "solid" | "ghost";
+    tone: "gold" | "blue" | "danger";
 }>) {
-    const base =
-        "slab pressable display w-full px-4 py-5 text-lg uppercase disabled:cursor-not-allowed disabled:shadow-[3px_3px_0_var(--outline)]";
-    // The disabled state is not decorative: it carries the live reason you cannot
-    // act ("cooling down · 3 blocks"), read mid-scramble. Dimming it to the usual
-    // near-invisible grey would hide the one thing the player needs.
-    const style =
-        variant === "solid"
-            ? "bg-magenta text-outline disabled:bg-surface disabled:text-ink-muted"
-            : "bg-cyan text-outline disabled:bg-surface disabled:text-ink-muted";
-
+    const skin = {gold: "hud-gold", blue: "hud-blue", danger: "hud-danger"}[tone];
     return (
-        <button type="button" className={`${base} ${style}`} onClick={onClick} disabled={disabled}>
-            {children}
-        </button>
-    );
-}
-
-function Notice({
-    children,
-    tone = "info",
-}: Readonly<{children: React.ReactNode; tone?: "info" | "error"}>) {
-    return (
-        <div
-            className={`slab-sm px-3 py-2 text-xs font-bold ${
-                tone === "error" ? "shake bg-danger text-outline" : "bg-surface text-ink-muted"
-            }`}
+        <button
+            type="button"
+            className={`${skin} hud-press pixel w-full px-4 py-4 text-[11px] uppercase`}
+            onClick={onClick}
+            disabled={disabled}
         >
             {children}
-        </div>
+        </button>
     );
 }
 
@@ -400,12 +377,12 @@ function Notice({
 function readableError(e: unknown): string | null {
     const msg = e instanceof Error ? e.message : String(e);
     if (/user rejected|denied transaction/i.test(msg)) return null;
-    if (/CrownProtected/.test(msg)) return "Someone beat you to it — the crown is protected.";
-    if (/CoolingDown/.test(msg)) return "You are still cooling down.";
-    if (/AlreadyYours/.test(msg)) return "You already hold the crown.";
-    if (/NotJoined/.test(msg)) return "Join the session first.";
-    if (/AlreadyClaimed/.test(msg)) return "Already claimed.";
-    if (/SessionClosed/.test(msg)) return "This session has closed.";
-    if (/AlreadyFortified/.test(msg)) return "You have already fortified this reign.";
-    return "Transaction failed.";
+    if (/CrownProtected/.test(msg)) return "TOO SLOW — IT'S LOCKED";
+    if (/CoolingDown/.test(msg)) return "STILL COOLING DOWN";
+    if (/AlreadyYours/.test(msg)) return "YOU ALREADY HAVE IT";
+    if (/NotJoined/.test(msg)) return "JOIN FIRST";
+    if (/AlreadyClaimed/.test(msg)) return "ALREADY PAID OUT";
+    if (/SessionClosed/.test(msg)) return "ROUND IS OVER";
+    if (/AlreadyFortified/.test(msg)) return "ALREADY BOLTED DOWN";
+    return "TRANSACTION FAILED";
 }

@@ -39,21 +39,37 @@ const COLORS = [
     "var(--ink-muted)",
 ];
 
+/** Deterministic seat for an address, so a player keeps the same spot. */
+export function seatOf(address: string, seats = SEATS.length): number {
+    let h = 0;
+    for (let i = 2; i < address.length; i++) h = (h * 31 + address.charCodeAt(i)) % 100_000;
+    return h % seats;
+}
+
 export function Arena({
     holderSeat = 0,
     className = "",
     animate = true,
+    labels,
+    stage = 1,
 }: {
     holderSeat?: number;
     className?: string;
     animate?: boolean;
+    /** Seat index -> short label. Present seats render live, absent ones ghost. */
+    labels?: Record<number, string>;
+    stage?: 0 | 1 | 2 | 3;
 }) {
+    const zoneStroke = stage === 3 ? "var(--danger)" : stage === 2 ? "var(--crown)" : "var(--violet)";
+
     return (
-        <svg viewBox="0 0 400 400" className={className} role="img" aria-label="Battle arena: one crown at the centre, six contenders around it">
+        <svg viewBox="0 0 400 400" className={className} role="img" aria-label="Battle arena: one crown at the centre, contenders around it">
             {/* Arena floor, three stage zones. Outer is 1x, inner rings pay more. */}
             <polygon points={HEX} fill="var(--arena)" stroke="var(--outline)" strokeWidth="6" />
-            <circle cx={CENTER} cy={CENTER} r="130" fill="none" stroke="var(--violet)" strokeWidth="2" strokeDasharray="6 8" opacity="0.5" />
-            <circle cx={CENTER} cy={CENTER} r="78" fill="var(--surface)" stroke="var(--danger)" strokeWidth="3" strokeDasharray="10 6" opacity="0.75" />
+            {/* The active zone ring takes the stage's colour, so the board itself
+                tells you what a block is currently worth. */}
+            <circle cx={CENTER} cy={CENTER} r="130" fill="none" stroke={zoneStroke} strokeWidth="2" strokeDasharray="6 8" opacity="0.55" />
+            <circle cx={CENTER} cy={CENTER} r="78" fill="var(--surface)" stroke={zoneStroke} strokeWidth="3" strokeDasharray="10 6" opacity="0.8" />
 
             {/* Zone labels — the scoring rule, stated on the board itself. */}
             <text x={CENTER} y="52" textAnchor="middle" className="display" fontSize="15" fill="var(--violet)">1×</text>
@@ -88,7 +104,9 @@ export function Arena({
                 <rect x="180" y="212" width="40" height="6" rx="1" fill="var(--outline)" />
             </g>
 
-            {/* Contenders. The holder is scaled up, crowned, and ringed. */}
+            {/* Contenders. The holder is scaled up, crowned, and ringed.
+                Occupied seats are solid; empty ones ghost back so a small room
+                still reads as a real board rather than a fake full one. */}
             {SEATS.map((seat, i) => (
                 <Contender
                     key={seat.deg}
@@ -96,6 +114,8 @@ export function Arena({
                     y={seat.y}
                     color={COLORS[i]}
                     isHolder={i === holderSeat}
+                    occupied={!labels || labels[i] !== undefined}
+                    label={labels?.[i]}
                 />
             ))}
         </svg>
@@ -107,16 +127,31 @@ function Contender({
     y,
     color,
     isHolder,
-}: {
+    occupied = true,
+    label,
+}: Readonly<{
     x: number;
     y: number;
     color: string;
     isHolder: boolean;
-}) {
+    occupied?: boolean;
+    label?: string;
+}>) {
     const size = isHolder ? 30 : 24;
 
     return (
-        <g transform={`translate(${x} ${y})`}>
+        <g transform={`translate(${x} ${y})`} opacity={occupied ? 1 : 0.28}>
+            {label ? (
+                <text
+                    y={size / 2 + 15}
+                    textAnchor="middle"
+                    fontSize="11"
+                    fontWeight="700"
+                    fill={isHolder ? "var(--crown)" : "var(--ink-muted)"}
+                >
+                    {label}
+                </text>
+            ) : null}
             {isHolder ? (
                 <circle r={size + 10} fill="none" stroke="var(--crown)" strokeWidth="3" strokeDasharray="5 5" />
             ) : null}

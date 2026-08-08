@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Archivo, Bungee } from "next/font/google";
+import { Archivo, Bungee, Press_Start_2P } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 
@@ -20,6 +20,20 @@ const bungee = Bungee({
   weight: ["400"],
 });
 
+/*
+ * Press Start 2P — the arcade bitmap face, used ONLY for HUD chrome.
+ *
+ * PassChick's game screen sets every panel label in a pixel face, and that is a
+ * large part of why its HUD reads as a game rather than a web app. It is close
+ * to unreadable in paragraphs, so it is confined to short all-caps labels and
+ * figures: HOPS, CURRENT CP, the timer. Body copy stays Archivo.
+ */
+const pressStart = Press_Start_2P({
+  variable: "--font-pixel",
+  subsets: ["latin"],
+  weight: ["400"],
+});
+
 const archivo = Archivo({
   variable: "--font-archivo",
   subsets: ["latin"],
@@ -36,7 +50,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${archivo.variable} ${bungee.variable} h-full antialiased`}
+      className={`${archivo.variable} ${bungee.variable} ${pressStart.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-ground text-ink">
         <Providers>{children}</Providers>
