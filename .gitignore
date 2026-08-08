@@ -1,0 +1,32 @@
+# Secrets — never commit
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Vendored third-party skills — restore via skills-lock.json if one is added
+.agents/skills/
+.impeccable/
+
+# Personal brief and event notes — not submission material
+prompt.txt
+monad-hackathon.txt
+
+# Node
+node_modules/
+.next/
+out/
+dist/
+*.tsbuildinfo
+.vercel/
+
+# Foundry
+contracts/out/
+contracts/cache/
+contracts/broadcast/
+contracts/lib/
+
+# OS / editor
+.DS_Store
+*.swp
+.idea/

@@ -1,0 +1,32 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+test = "test"
+
+# ── Monad compatibility (CON-004) ────────────────────────────────────────────
+# Monad implements EVM opcodes only through SHANGHAI. Two independent settings
+# can reintroduce Cancun-era opcodes (MCOPY / TLOAD / TSTORE), and the failure is
+# SILENT: the contract deploys cleanly and reverts at runtime.
+#
+#   1. Foundry defaults evm_version to the newest fork ("osaka") — must be pinned.
+#   2. The optimizer has been observed emitting MCOPY even under evm_version
+#      = "shanghai", so it is disabled here. This contract is small; the size and
+#      gas cost of an unoptimized build is irrelevant next to a silent revert.
+#
+# ./check-opcodes.sh verifies the compiled runtime bytecode. Run it before EVERY
+# deploy — the settings below are necessary but the script is what proves it.
+solc_version = "0.8.28"
+evm_version = "shanghai"
+optimizer = false
+
+# Monad charges gas on gas_limit, not gas used, so keep estimates honest.
+gas_reports = ["Rebutan"]
+
+[rpc_endpoints]
+monad_testnet = "https://testnet-rpc.monad.xyz"
+
+[fmt]
+line_length = 100
+tab_width = 4
+bracket_spacing = false
