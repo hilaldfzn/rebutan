@@ -4,25 +4,25 @@
 
 Built at [Monad Blitz Jakarta](https://luma.com/ksxks0qo) — 8 August 2026, Midpoint Place, Jakarta.
 
-| | |
-|---|---|
-| **Live app** | **https://rebutan-monad.vercel.app** |
-| Contract | [`0x87859caeD22239B6e8E3cB7998AAF7c5Fd4A0596`](https://testnet.monadscan.com/address/0x87859caeD22239B6e8E3cB7998AAF7c5Fd4A0596) |
-| Network | Monad Testnet — chain id **10143** |
-| Verified | [MonadVision](https://testnet.monadvision.com/address/0x87859caeD22239B6e8E3cB7998AAF7c5Fd4A0596) · [Monadscan](https://testnet.monadscan.com/address/0x87859caeD22239B6e8E3cB7998AAF7c5Fd4A0596) — perfect match |
+|                    |                                                                                                                                                                                                                   |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Live app** | **https://rebutan-monad.vercel.app**                                                                                                                                                                        |
+| Contract           | [`0x87859caeD22239B6e8E3cB7998AAF7c5Fd4A0596`](https://testnet.monadscan.com/address/0x87859caeD22239B6e8E3cB7998AAF7c5Fd4A0596)                                                                                 |
+| Network            | Monad Testnet — chain id**10143**                                                                                                                                                                          |
+| Verified           | [MonadVision](https://testnet.monadvision.com/address/0x87859caeD22239B6e8E3cB7998AAF7c5Fd4A0596) · [Monadscan](https://testnet.monadscan.com/address/0x87859caeD22239B6e8E3cB7998AAF7c5Fd4A0596) — perfect match |
 
 ### Measured on-chain
 
 Not estimates — these are from the live deployment above.
 
-| | |
-|---|---|
-| `join()` | 126,831 gas |
-| `steal()` | 132,416 gas |
-| Runtime size | 12,767 bytes (Monad's limit is 128 kb) |
-| Contract tests | 27 passing, incl. a 256-run fuzz on payout solvency |
-| Full lifecycle | join → steal → settle → claim exercised on live testnet |
-| Pot solvency | contract held **exactly 0 MON** after all claims — nothing stranded |
+|                |                                                                           |
+| -------------- | ------------------------------------------------------------------------- |
+| `join()`     | 126,831 gas                                                               |
+| `steal()`    | 132,416 gas                                                               |
+| Runtime size   | 12,767 bytes (Monad's limit is 128 kb)                                    |
+| Contract tests | 27 passing, incl. a 256-run fuzz on payout solvency                       |
+| Full lifecycle | join → steal → settle → claim exercised on live testnet                |
+| Pot solvency   | contract held**exactly 0 MON** after all claims — nothing stranded |
 
 ---
 
@@ -40,12 +40,12 @@ One crown lives on-chain. Players stake a fixed **0.1 MON** to join, and whoever
 
 **Four verbs:**
 
-| Verb | Cost | Effect |
-|---|---|---|
-| `join` | 0.1 MON, once | enter the session, add to the pot |
-| `steal` | gas only | take the crown; **your own** cooldown grows +3 blocks per steal you make |
-| `fortify` | gas only | buy 8 blocks of protection by forfeiting 4 blocks of earnings |
-| `claim` | gas only | take your payout after settlement |
+| Verb        | Cost          | Effect                                                                        |
+| ----------- | ------------- | ----------------------------------------------------------------------------- |
+| `join`    | 0.1 MON, once | enter the session, add to the pot                                             |
+| `steal`   | gas only      | take the crown;**your own** cooldown grows +3 blocks per steal you make |
+| `fortify` | gas only      | buy 8 blocks of protection by forfeiting 4 blocks of earnings                 |
+| `claim`   | gas only      | take your payout after settlement                                             |
 
 **Stages.** The session runs in three stages by block range, paying **1× → 2× → 3×**. Falling behind early is recoverable and the final third decides most of it.
 
@@ -79,13 +79,13 @@ On-chain state (holder, since, blocksHeld)
 
 ## Tech stack
 
-| Layer | Choice |
-|---|---|
-| Contract | Solidity 0.8.28 · Foundry |
-| Frontend | Next.js · TypeScript · Tailwind |
-| 3D Graphics | React Three Fiber · three.js |
-| Chain | wagmi v3 · viem |
-| Hosting | Vercel |
+| Layer       | Choice                            |
+| ----------- | --------------------------------- |
+| Contract    | Solidity 0.8.28 · Foundry        |
+| Frontend    | Next.js · TypeScript · Tailwind |
+| 3D Graphics | React Three Fiber · three.js     |
+| Chain       | wagmi v3 · viem                  |
+| Hosting     | Vercel                            |
 
 ## Setup
 
@@ -125,11 +125,13 @@ Full deployment and verification steps: [spec/spec-rebutan.md](spec/spec-rebutan
 ## Screenshots
 
 ### Landing Page
-![Landing Page](web/public/Image%201.png)
+
+![Landing Page](web/public/Landing.png)
 *Hero section with live arena visualization showing fighters contesting the crown*
 
 ### 3D Gameplay Arena
-![Gameplay Arena](web/public/Image%202.png)
+
+![Gameplay Arena](web/public/Gameplay.png)
 *Playable 3D voxel arena with WASD controls — six distinct fighters circle the crown*
 
 ## Known limitations
