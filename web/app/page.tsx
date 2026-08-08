@@ -1,24 +1,16 @@
 import Link from "next/link";
 
 import {Arena, CrownMark} from "@/components/Arena";
-import {LiveBlockTicker} from "@/components/LiveBlockTicker";
 import {LiveStats} from "@/components/LiveStats";
 import {TIERS} from "@/lib/game";
 import {
-    CHAIN_ID,
     FORTIFY_COST_BLOCKS,
     FORTIFY_PROTECT_BLOCKS,
     MIN_REIGN_BLOCKS,
     STAKE_MON,
-    addressUrl,
-    envContractAddress,
-    short,
 } from "@/lib/constants";
 
-const REPO = "https://github.com/hilaldfzn/rebutan";
-
 export default function Landing() {
-    const contract = envContractAddress();
 
     return (
         <main className="mx-auto flex w-full max-w-5xl flex-col gap-20 px-5 py-10 sm:gap-28 sm:py-16">
@@ -177,29 +169,6 @@ export default function Landing() {
                     be bought, traded, or reset. Pure bragging rights — a Tyrant and a first-timer
                     steal on exactly the same terms.
                 </p>
-            </section>
-
-            {/* ── THE CHAIN BIT ───────────────────────────────────────────
-                Deliberately last and deliberately quiet. The gameplay has to
-                land first; this is the receipt, not the pitch. */}
-            <section className="slab flex flex-col gap-4 bg-surface p-7">
-                <span className="display text-xs uppercase tracking-widest text-violet">
-                    The technical bit, briefly
-                </span>
-
-                <p className="text-lg leading-relaxed text-ink">
-                    We couldn&rsquo;t measure this game in seconds.
-                </p>
-                <p className="max-w-2xl leading-relaxed text-ink-muted">
-                    Monad makes a block every ~400ms, but{" "}
-                    <code className="bg-ground px-1.5 py-0.5 text-sm text-cyan">block.timestamp</code>{" "}
-                    only resolves to whole seconds — two or three blocks share one. Scoring in
-                    seconds would flatten most reigns to zero. So the payout counts{" "}
-                    <strong className="text-crown">blocks</strong>, and the chain&rsquo;s own pulse
-                    became the unit of account. On a twelve-second chain this game doesn&rsquo;t get
-                    worse; it stops existing.
-                </p>
-                <LiveBlockTicker />
             </section>
 
         </main>
