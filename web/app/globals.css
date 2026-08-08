@@ -136,10 +136,43 @@ body {
 }
 .shake { animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
 
+/* The crown changing hands.
+ *
+ * Slams in oversized and overshoots on the way to rest, because a handover is
+ * the single loudest thing that happens in this game and it competes with a 3D
+ * scene doing its own celebration underneath. It leaves on its own — nothing to
+ * dismiss mid-fight. */
+@keyframes crown-slam {
+  0%   { transform: scale(2.3) rotate(-7deg); opacity: 0; }
+  22%  { transform: scale(0.88) rotate(3deg); opacity: 1; }
+  36%  { transform: scale(1.07) rotate(-1.5deg); }
+  50%  { transform: scale(1) rotate(0deg); }
+  85%  { transform: scale(1) translateY(0); opacity: 1; }
+  100% { transform: scale(1.03) translateY(-16px); opacity: 0; }
+}
+.crown-slam { animation: crown-slam 2.2s cubic-bezier(0.2, 0, 0.2, 1) forwards; }
+
+/* Gold wash over the arena on the same beat as the crown landing. */
+.crown-flash {
+  opacity: 0;
+  background: radial-gradient(circle at 50% 42%, var(--crown), transparent 62%);
+  mix-blend-mode: screen;
+  animation: crown-flash 0.9s ease-out forwards;
+}
+@keyframes crown-flash {
+  0% { opacity: 0; }
+  9% { opacity: 0.45; }
+  100% { opacity: 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .pulse-crown,
   .orbit-dash,
-  .shake { animation: none; }
+  .shake,
+  .crown-slam,
+  /* Base opacity is 0, so killing the animation removes the flash entirely
+     rather than freezing a gold sheet over the arena. */
+  .crown-flash { animation: none; }
   .pressable { transition: none; }
 }
 

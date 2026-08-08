@@ -11,6 +11,8 @@
  * venue wifi, and it scales to a projector without artefacts.
  */
 
+import {FIGHTERS} from "@/lib/fighters";
+
 const CENTER = 200;
 
 /** Six contender seats, evenly spaced on a ring. */
@@ -30,14 +32,10 @@ const HEX = [0, 60, 120, 180, 240, 300]
     })
     .join(" ");
 
-const COLORS = [
-    "var(--magenta)",
-    "var(--cyan)",
-    "var(--violet)",
-    "var(--crown)",
-    "var(--danger)",
-    "var(--ink-muted)",
-];
+/** Same six fighters as the 3D arena, in the same seat order. The flat arena is
+ *  what stands in while three.js loads, so a fighter must not change colour when
+ *  the scene arrives. */
+const COLORS = FIGHTERS.map((f) => f.color);
 
 /** Deterministic seat for an address, so a player keeps the same spot. */
 export function seatOf(address: string, seats = SEATS.length): number {

@@ -1,6 +1,6 @@
 "use client";
 
-import {useEffect, useMemo, useState} from "react";
+import {useEffect, useMemo, useRef, useState} from "react";
 // wagmi v3 renamed useAccount -> useConnection and moved the mutation hooks to
 // mutate/mutateAsync; the old names still work but are deprecated aliases.
 import {useConnect, useConnection, useConnectors, useSwitchChain, useWriteContractSync} from "wagmi";
@@ -25,6 +25,7 @@ const VoxelArena = dynamic(() => import("@/components/VoxelArena"), {
     loading: () => null,
 });
 import {rebutanAbi} from "@/lib/abi";
+import {SEAT_COUNT, fighterAt} from "@/lib/fighters";
 import {
     CHAIN_ID,
     FORTIFY_COST_BLOCKS,
@@ -90,36 +91,87 @@ export default function Play() {
 
     // Seat the real roster. The holder is always seated even if the log scan
     // missed them — an empty throne over a contested crown would be a lie.
-    const {labels, holderSeat, playerSeat} = useMemo(() => {
-        const map: Record<number, string> = {};
-        const taken = new Set<number>();
-        const place = (addr: string) => {
-            let seat = seatOf(addr);
-            for (let i = 0; i < 6 && taken.has(seat); i++) seat = (seat + 1) % 6;
-            taken.add(seat);
-            map[seat] = short(addr);
-            return seat;
-        };
-        let hSeat = 0;
-        if (s && s.holder !== ZERO_ADDRESS) hSeat = place(s.holder);
-        for (const p of roster) {
-            if (s && p.toLowerCase() === s.holder.toLowerCase()) continue;
-            place(p);
-        }
+    //
+    // Allocation is by SORTED ADDRESS, never by who currently holds the crown.
+    // The previous order placed the holder first, which meant a steal could
+    // reshuffle every other fighter's seat in the same frame the crown moved —
+    // and a handover animation is unreadable if the arena rearranges underneath
+    // it. Seats must be the fixed thing; the crown is the only thing that moves.
+    const {labels, seatByAddress, holderSeat, playerSeat} = useMemo(() => {
+        const addrs = new Set<string>();
+        if (s && s.holder !== ZERO_ADDRESS) addrs.add(s.holder.toLowerCase());
+        for (const p of roster) addrs.add(p.toLowerCase());
         // Your own seat, whether or not the log scan has caught up with you.
-        let pSeat = player ? seatOf(player) : 0;
-        for (const [seatStr, label] of Object.entries(map)) {
-            if (player && label === short(player)) pSeat = Number(seatStr);
+        if (player) addrs.add(player.toLowerCase());
+
+        const map: Record<number, string> = {};
+        const byAddress: Record<string, number> = {};
+        const taken = new Set<number>();
+
+        for (const addr of [...addrs].sort()) {
+            let seat = seatOf(addr, SEAT_COUNT);
+            for (let i = 0; i < SEAT_COUNT && taken.has(seat); i++) seat = (seat + 1) % SEAT_COUNT;
+            taken.add(seat);
+            byAddress[addr] = seat;
+            map[seat] = short(addr);
         }
-        if (player && !Object.values(map).includes(short(player))) {
-            while (taken.has(pSeat)) pSeat = (pSeat + 1) % 6;
-            map[pSeat] = short(player);
-        }
-        return {labels: map, holderSeat: hSeat, playerSeat: pSeat};
+
+        return {
+            labels: map,
+            seatByAddress: byAddress,
+            holderSeat: s && s.holder !== ZERO_ADDRESS ? byAddress[s.holder.toLowerCase()] ?? -1 : -1,
+            playerSeat: player ? byAddress[player.toLowerCase()] ?? 0 : 0,
+        };
     }, [roster, s, player]);
 
-    const hasHolder = Boolean(s && s.holder !== ZERO_ADDRESS);
     const occupiedSeats = useMemo(() => Object.keys(labels).map(Number), [labels]);
+
+    /** A fighter's name, or where the crown was before anyone had taken it. */
+    const nameOf = (addr: string) => {
+        if (addr.toLowerCase() === ZERO_ADDRESS) return "THE THRONE";
+        const seat = seatByAddress[addr.toLowerCase()];
+        return seat === undefined ? short(addr) : fighterAt(seat).name;
+    };
+
+    /**
+     * The handover announcement.
+     *
+     * Fires off the on-chain holder, not off the click — so it is equally
+     * correct when someone else steals it from you, which is the case that
+     * actually needs announcing. Nothing here initiates anything; it reports.
+     */
+    const [takeover, setTakeover] = useState<{
+        id: number;
+        from: string;
+        to: string;
+        mine: boolean;
+    } | null>(null);
+    const lastHolder = useRef<string | null>(null);
+
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- the
+        // external system here is the chain, and wagmi surfaces it as a value
+        // rather than a subscription we could set state from. Reacting to the
+        // changed holder in an effect is the only hook we are given.
+        const holder = s?.holder;
+        if (!holder) return;
+        const previous = lastHolder.current;
+        lastHolder.current = holder;
+        // The first read of the session is not a handover.
+        if (previous === null || previous.toLowerCase() === holder.toLowerCase()) return;
+        setTakeover({
+            id: Date.now(),
+            from: previous,
+            to: holder,
+            mine: Boolean(player && holder.toLowerCase() === player.toLowerCase()),
+        });
+    }, [s?.holder, player]);
+
+    useEffect(() => {
+        if (!takeover) return;
+        const id = setTimeout(() => setTakeover(null), 2200);
+        return () => clearTimeout(id);
+    }, [takeover]);
 
     // Exactly the same gate as the STEAL button. Walking into range must never
     // let you fire a transaction the contract would reject — a reverted steal
@@ -175,7 +227,7 @@ export default function Play() {
             </div>
             <VoxelArena
                 className="absolute inset-0 h-full w-full"
-                holderSeat={hasHolder ? holderSeat : -1}
+                holderSeat={holderSeat}
                 playerSeat={playerSeat}
                 occupiedSeats={occupiedSeats}
                 stage={stage}
@@ -184,22 +236,63 @@ export default function Play() {
                 canGrab={canGrab}
                 onGrab={() => send("steal")}
             />
-            {/* Seat labels ride above the 3D layer: text in a WebGL scene needs a
-                font atlas and extra weight, and HTML is sharper anyway. */}
-            <div className="pointer-events-none absolute inset-x-0 bottom-24 flex flex-wrap justify-center gap-2 px-4">
-                {Object.entries(labels).map(([seat, label]) => (
-                    <span
-                        key={seat}
-                        className={`hud px-2 py-1 ${
-                            Number(seat) === holderSeat && hasHolder ? "text-crown" : "text-ink-muted"
-                        }`}
+
+            {/* ── HANDOVER ──────────────────────────────────────────────────
+                Announced only when the chain says the holder changed, so it
+                cannot fire on an optimistic click that later reverts. The
+                fighter names are what carry it: "CREST → SPARK" is legible from
+                the back of a room in a way two truncated addresses are not. */}
+            {takeover ? (
+                <>
+                    <div className="crown-flash pointer-events-none absolute inset-0 z-10" />
+                    <div
+                        key={takeover.id}
+                        className="crown-slam pointer-events-none absolute inset-x-0 top-[38%] z-20 flex justify-center px-4"
                     >
-                        <span className="pixel text-[8px]">
-                            {Number(seat) === holderSeat && hasHolder ? "♛ " : ""}
-                            {label}
+                        <div className="hud-gold px-6 py-4 text-center">
+                            <div className="pixel text-[12px] uppercase leading-none">
+                                {takeover.mine ? "the crown is yours" : "crown taken"}
+                            </div>
+                            <div className="pixel mt-2 text-[9px] uppercase opacity-75">
+                                {nameOf(takeover.from)} → {nameOf(takeover.to)}
+                            </div>
+                        </div>
+                    </div>
+                </>
+            ) : null}
+
+            {/* Seat labels ride above the 3D layer: text in a WebGL scene needs a
+                font atlas and extra weight, and HTML is sharper anyway. The
+                colour swatch is the link back to the fighter in the arena —
+                names and hues both, because one of them survives a projector
+                and the other survives colour blindness. */}
+            <div className="pointer-events-none absolute inset-x-0 bottom-24 flex flex-wrap justify-center gap-2 px-4">
+                {Object.entries(labels).map(([seat, label]) => {
+                    const fighter = fighterAt(Number(seat));
+                    const crowned = Number(seat) === holderSeat;
+                    return (
+                        <span
+                            key={seat}
+                            className={`hud flex items-center gap-1.5 px-2 py-1 ${
+                                crowned ? "outline outline-2 outline-crown" : ""
+                            }`}
+                        >
+                            <span
+                                className="h-2.5 w-2.5 rounded-[2px]"
+                                style={{background: fighter.color}}
+                            />
+                            <span
+                                className={`pixel text-[8px] ${
+                                    crowned ? "text-crown" : "text-ink-muted"
+                                }`}
+                            >
+                                {crowned ? "♛ " : ""}
+                                {fighter.name}
+                            </span>
+                            <span className="pixel text-[8px] text-ink-faint">{label}</span>
                         </span>
-                    </span>
-                ))}
+                    );
+                })}
             </div>
 
             {/* ── HUD ───────────────────────────────────────────────────── */}
@@ -279,12 +372,16 @@ export default function Play() {
                                 <Key>D</Key>
                                 <span className="pixel text-[8px] text-ink-faint">move</span>
                                 <Key wide>SPACE</Key>
+                                {/* "at the crown", not just "grab": range is
+                                    measured to wherever the crown actually is,
+                                    which after the first steal is somebody's
+                                    head rather than the middle of the arena. */}
                                 <span
                                     className={`pixel text-[8px] ${
                                         canGrab ? "text-crown" : "text-ink-faint"
                                     }`}
                                 >
-                                    grab
+                                    take at ♛
                                 </span>
                             </div>
                         ) : null}
