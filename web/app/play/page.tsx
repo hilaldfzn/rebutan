@@ -90,7 +90,7 @@ export default function Play() {
 
     // Seat the real roster. The holder is always seated even if the log scan
     // missed them — an empty throne over a contested crown would be a lie.
-    const {labels, holderSeat} = useMemo(() => {
+    const {labels, holderSeat, playerSeat} = useMemo(() => {
         const map: Record<number, string> = {};
         const taken = new Set<number>();
         const place = (addr: string) => {
@@ -106,11 +106,31 @@ export default function Play() {
             if (s && p.toLowerCase() === s.holder.toLowerCase()) continue;
             place(p);
         }
-        return {labels: map, holderSeat: hSeat};
-    }, [roster, s]);
+        // Your own seat, whether or not the log scan has caught up with you.
+        let pSeat = player ? seatOf(player) : 0;
+        for (const [seatStr, label] of Object.entries(map)) {
+            if (player && label === short(player)) pSeat = Number(seatStr);
+        }
+        if (player && !Object.values(map).includes(short(player))) {
+            while (taken.has(pSeat)) pSeat = (pSeat + 1) % 6;
+            map[pSeat] = short(player);
+        }
+        return {labels: map, holderSeat: hSeat, playerSeat: pSeat};
+    }, [roster, s, player]);
 
     const hasHolder = Boolean(s && s.holder !== ZERO_ADDRESS);
     const occupiedSeats = useMemo(() => Object.keys(labels).map(Number), [labels]);
+
+    // Exactly the same gate as the STEAL button. Walking into range must never
+    // let you fire a transaction the contract would reject — a reverted steal
+    // still costs full gas on Monad, which charges on gas_limit.
+    const canGrab =
+        g.joined &&
+        !isHolder &&
+        !over &&
+        !busy &&
+        g.cooldownRemaining === 0n &&
+        g.protectionRemaining === 0n;
 
     useEffect(() => setError(null), [s?.holder]);
 
@@ -156,8 +176,13 @@ export default function Play() {
             <VoxelArena
                 className="absolute inset-0 h-full w-full"
                 holderSeat={hasHolder ? holderSeat : -1}
+                playerSeat={playerSeat}
                 occupiedSeats={occupiedSeats}
                 stage={stage}
+                isHolder={isHolder}
+                interactive={isConnected && g.joined && !over}
+                canGrab={canGrab}
+                onGrab={() => send("steal")}
             />
             {/* Seat labels ride above the 3D layer: text in a WebGL scene needs a
                 font atlas and extra weight, and HTML is sharper anyway. */}
@@ -244,6 +269,26 @@ export default function Play() {
                             onSwitch={() => switchChain({chainId: CHAIN_ID})}
                             onSend={send}
                         />
+                        {/* Controls hint. Without this a judge stares at a scene
+                            they do not know they can drive. */}
+                        {isConnected && g.joined && !over ? (
+                            <div className="hud flex items-center justify-center gap-2 px-3 py-2">
+                                <Key>W</Key>
+                                <Key>A</Key>
+                                <Key>S</Key>
+                                <Key>D</Key>
+                                <span className="pixel text-[8px] text-ink-faint">move</span>
+                                <Key wide>SPACE</Key>
+                                <span
+                                    className={`pixel text-[8px] ${
+                                        canGrab ? "text-crown" : "text-ink-faint"
+                                    }`}
+                                >
+                                    grab
+                                </span>
+                            </div>
+                        ) : null}
+
                         <div className="hud px-3 py-1.5 text-center">
                             <span className="pixel text-[8px] text-ink-faint">
                                 #{block.toString()} · CUT {formatMon(payout, 3)}
@@ -263,6 +308,18 @@ export default function Play() {
                 </div>
             </div>
         </div>
+    );
+}
+
+function Key({children, wide}: Readonly<{children: React.ReactNode; wide?: boolean}>) {
+    return (
+        <kbd
+            className={`pixel inline-grid place-items-center rounded border-2 border-[#4a4270] bg-[#221c3d] text-[7px] text-ink ${
+                wide ? "h-5 px-2" : "h-5 w-5"
+            }`}
+        >
+            {children}
+        </kbd>
     );
 }
 
