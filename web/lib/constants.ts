@@ -43,17 +43,28 @@ export const LONG_REIGN_SHARE_BPS = 3000;
  * Returns null rather than throwing: the app must still render the rules and an
  * explanatory empty state when no contract is configured yet.
  */
+const isAddress = (v: string | null | undefined): v is `0x${string}` =>
+  Boolean(v) && /^0x[0-9a-fA-F]{40}$/.test(v as string);
+
+/**
+ * Tier 2 only, safe to call during SSR.
+ *
+ * The server render must already know the address, or the first paint shows the
+ * "no contract configured" empty state and then flips — which looks like a
+ * broken app on the projector for the length of a hydration.
+ */
+export function envContractAddress(): `0x${string}` | null {
+  const v = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS;
+  return isAddress(v) ? v : null;
+}
+
 export function resolveContractAddress(search?: string): `0x${string}` | null {
   const fromQuery =
     typeof window !== "undefined"
       ? new URLSearchParams(search ?? window.location.search).get("contract")
       : null;
 
-  const candidate = fromQuery ?? process.env.NEXT_PUBLIC_CONTRACT_ADDRESS ?? null;
-
-  return candidate && /^0x[0-9a-fA-F]{40}$/.test(candidate)
-    ? (candidate as `0x${string}`)
-    : null;
+  return isAddress(fromQuery) ? fromQuery : envContractAddress();
 }
 
 export const txUrl = (hash: string) => `${EXPLORER_URL}/tx/${hash}`;

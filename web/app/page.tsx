@@ -1,69 +1,406 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
-  return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
+import {useEffect, useState} from "react";
+// wagmi v3 renamed useAccount -> useConnection and moved the mutation hooks to
+// mutate/mutateAsync; the old names still work but are deprecated aliases.
+import {
+    useConnect,
+    useConnection,
+    useConnectors,
+    useSwitchChain,
+    useWriteContractSync,
+} from "wagmi";
+import {parseEther} from "viem";
+
+import {rebutanAbi} from "@/lib/abi";
+import {
+    CHAIN_ID,
+    FORTIFY_COST_BLOCKS,
+    FORTIFY_PROTECT_BLOCKS,
+    STAKE_MON,
+    addressUrl,
+    short,
+} from "@/lib/constants";
+import {
+    ZERO_ADDRESS,
+    currentStage,
+    estimatedPayout,
+    formatMon,
+    pendingWeighted,
+    rawReign,
+    type Session,
+} from "@/lib/game";
+import {useLiveBlock, useRebutan} from "@/lib/useRebutan";
+
+export default function Page() {
+    const {address: player, isConnected, chainId} = useConnection();
+    const connectors = useConnectors();
+    const {mutate: connect} = useConnect();
+    const {mutate: switchChain} = useSwitchChain();
+    const block = useLiveBlock();
+    const g = useRebutan();
+
+    const {mutateAsync: write} = useWriteContractSync();
+    const [busy, setBusy] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const s = g.session;
+    const isHolder = Boolean(s && player && s.holder.toLowerCase() === player.toLowerCase());
+    const stage = s ? currentStage(s, block) : 1;
+    const over = Boolean(s && block >= s.endsAt);
+    const reign = s ? rawReign(s, block) : 0n;
+    const earned = s ? pendingWeighted(s, block) : 0n;
+    const payout = s
+        ? estimatedPayout(s, player, g.bankedWeighted, block, g.enduranceBps, g.longReignBps)
+        : 0n;
+
+    // Drop a stale error the moment the world changes underneath it.
+    useEffect(() => setError(null), [s?.holder]);
+
+    async function send(functionName: string, args: unknown[] = [], value?: bigint) {
+        if (!g.address) return;
+        setBusy(true);
+        setError(null);
+        try {
+            // Resolves with the RECEIPT, not a pending hash — this is why the app
+            // has no spinner. By the time this await returns it is already on chain.
+            await write({
+                address: g.address,
+                abi: rebutanAbi,
+                functionName,
+                args,
+                value,
+                chainId: CHAIN_ID,
+            } as never);
+            g.refetch();
+        } catch (e) {
+            setError(readableError(e));
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    return (
+        <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col gap-5 px-5 py-6">
+            <header className="flex items-baseline justify-between">
+                <h1 className="text-lg font-bold tracking-tight">Rebutan</h1>
+                <span className="text-xs tabular-nums text-neutral-500">#{block.toString()}</span>
+            </header>
+
+            <p className="text-sm leading-snug text-neutral-400">
+                Hold the crown. You earn for every Monad block you hold it —{" "}
+                <span className="text-neutral-200">a block is 400&nbsp;milliseconds.</span>
+            </p>
+
+            {!g.address ? (
+                <Notice>
+                    No contract configured. Append <code>?contract=0x…</code> to the URL.
+                </Notice>
+            ) : null}
+
+            <Crown
+                session={s}
+                isHolder={isHolder}
+                over={over}
+                stage={stage}
+                reign={reign}
+                earned={earned}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+            <div className="grid grid-cols-3 gap-3 text-center">
+                <Stat label="pot" value={s ? formatMon(s.pot, 2) : "—"} unit="MON" />
+                <Stat label="players" value={s ? String(s.players) : "—"} />
+                <Stat label="your take" value={s ? formatMon(payout, 3) : "—"} unit="MON" hint="est" />
+            </div>
+
+            <div className="mt-auto flex flex-col gap-3">
+                {error ? <Notice tone="error">{error}</Notice> : null}
+
+                <Actions
+                    connected={isConnected}
+                    wrongNetwork={isConnected && chainId !== CHAIN_ID}
+                    hasConnector={connectors.length > 0}
+                    session={s}
+                    game={g}
+                    isHolder={isHolder}
+                    over={over}
+                    payout={payout}
+                    busy={busy}
+                    onConnect={() => connect({connector: connectors[0]})}
+                    onSwitch={() => switchChain({chainId: CHAIN_ID})}
+                    onSend={send}
+                />
+
+                <p className="text-center text-[11px] text-neutral-600">
+                    Monad Testnet · chain {CHAIN_ID}
+                    {g.reignRecord > 0n ? ` · career ${g.reignRecord} blocks` : ""}
+                </p>
+            </div>
+        </main>
+    );
+}
+
+/**
+ * The action area, as a flat sequence of early returns rather than nested
+ * ternaries. There are eight mutually exclusive states here and they change
+ * under time pressure mid-demo; a reader has to be able to check each one
+ * against the contract's rules at a glance.
+ */
+function Actions({
+    connected,
+    wrongNetwork,
+    hasConnector,
+    session,
+    game,
+    isHolder,
+    over,
+    payout,
+    busy,
+    onConnect,
+    onSwitch,
+    onSend,
+}: Readonly<{
+    connected: boolean;
+    wrongNetwork: boolean;
+    hasConnector: boolean;
+    session: Session | null;
+    game: ReturnType<typeof useRebutan>;
+    isHolder: boolean;
+    over: boolean;
+    payout: bigint;
+    busy: boolean;
+    onConnect: () => void;
+    onSwitch: () => void;
+    onSend: (fn: string, args?: unknown[], value?: bigint) => void;
+}>) {
+    if (!connected) {
+        return (
+            <Button onClick={onConnect} disabled={!hasConnector}>
+                Connect wallet
+            </Button>
+        );
+    }
+
+    if (wrongNetwork) {
+        return <Button onClick={onSwitch}>Switch to Monad Testnet</Button>;
+    }
+
+    if (over) {
+        if (!session?.settled) {
+            return (
+                <Button onClick={() => onSend("settle")} disabled={busy}>
+                    Settle session
+                </Button>
+            );
+        }
+        return (
+            <Button
+                onClick={() => onSend("claim", [game.sessionId])}
+                disabled={!game.joined || game.claimed || busy}
+            >
+                {game.claimed ? "Claimed" : `Claim ${formatMon(payout, 3)} MON`}
+            </Button>
+        );
+    }
+
+    if (!game.joined) {
+        return (
+            <Button onClick={() => onSend("join", [], parseEther(STAKE_MON))} disabled={busy}>
+                Join — {STAKE_MON} MON
+            </Button>
+        );
+    }
+
+    return (
+        <>
+            <Button
+                onClick={() => onSend("steal")}
+                disabled={isHolder || game.cooldownRemaining > 0n || game.protectionRemaining > 0n || busy}
+            >
+                {stealLabel(isHolder, game.cooldownRemaining, game.protectionRemaining)}
+            </Button>
+
+            {isHolder ? (
+                <Button variant="ghost" onClick={() => onSend("fortify")} disabled={session?.fortified || busy}>
+                    {session?.fortified
+                        ? "Already fortified this reign"
+                        : `Fortify · +${FORTIFY_PROTECT_BLOCKS} protected, −${FORTIFY_COST_BLOCKS} earned`}
+                </Button>
+            ) : null}
+        </>
+    );
+}
+
+function stealLabel(isHolder: boolean, cooldown: bigint, protection: bigint): string {
+    if (isHolder) return "The crown is yours";
+    if (cooldown > 0n) return `Cooling down · ${cooldown} blocks`;
+    // Firing into a protected crown wastes real MON: Monad charges on gas_limit,
+    // so a reverted steal still costs full gas. The button stays hard-disabled.
+    if (protection > 0n) return `Protected · ${protection} blocks`;
+    return "Steal the crown";
+}
+
+function Crown({
+    session,
+    isHolder,
+    over,
+    stage,
+    reign,
+    earned,
+}: Readonly<{
+    session: Session | null;
+    isHolder: boolean;
+    over: boolean;
+    stage: 0 | 1 | 2 | 3;
+    reign: bigint;
+    earned: bigint;
+}>) {
+    // Secondary text takes an amber tint when the panel is amber: neutral gray
+    // goes muddy on a colored ground and loses legibility at projector distance.
+    const quiet = isHolder ? "text-amber-200/80" : "text-neutral-500";
+
+    let heading = "Crown";
+    if (over) heading = "Session closed";
+    else if (isHolder) heading = "You hold it";
+
+    return (
+        <section
+            className={`rounded-2xl border p-6 transition-colors ${
+                isHolder ? "border-amber-400/60 bg-amber-400/10" : "border-neutral-800 bg-neutral-900/60"
+            }`}
+        >
+            <div className={`flex items-center justify-between text-xs uppercase tracking-widest ${quiet}`}>
+                <span>{heading}</span>
+                <StageBadge stage={stage} holding={isHolder} />
+            </div>
+
+            <div
+                className={`mt-3 text-6xl font-extrabold tabular-nums leading-none ${
+                    isHolder ? "text-amber-100" : "text-neutral-100"
+                }`}
+            >
+                {reign.toString()}
+            </div>
+            <div className={`mt-1 text-xs ${quiet}`}>
+                blocks held · {earned.toString()} weighted
+            </div>
+
+            <div
+                className={`mt-4 border-t pt-3 text-sm ${
+                    isHolder ? "border-amber-400/25" : "border-neutral-800"
+                }`}
+            >
+                <span className={quiet}>holder </span>
+                {session && session.holder !== ZERO_ADDRESS ? (
+                    <a
+                        className="underline decoration-neutral-700 underline-offset-4"
+                        href={addressUrl(session.holder)}
+                        target="_blank"
+                        rel="noreferrer"
+                    >
+                        {short(session.holder)}
+                    </a>
+                ) : (
+                    <span className="text-neutral-400">unclaimed</span>
+                )}
+            </div>
+        </section>
+    );
+}
+
+function StageBadge({stage, holding}: Readonly<{stage: 0 | 1 | 2 | 3; holding: boolean}>) {
+    const quiet = holding ? "text-amber-200/80" : "text-neutral-500";
+    if (stage === 0) return <span className={quiet}>ended</span>;
+
+    let tone = quiet;
+    if (stage === 3) tone = "text-rose-300";
+    else if (stage === 2) tone = "text-amber-300";
+
+    return (
+        <span className={tone}>
+            stage {stage} · {stage}×
+        </span>
+    );
+}
+
+function Stat({
+    label,
+    value,
+    unit,
+    hint,
+}: Readonly<{label: string; value: string; unit?: string; hint?: string}>) {
+    return (
+        <div className="rounded-xl border border-neutral-800 bg-neutral-900/40 px-2 py-3">
+            <div className="text-lg tabular-nums">
+                {value}
+                {unit ? <span className="ml-1 text-[10px] text-neutral-500">{unit}</span> : null}
+            </div>
+            <div className="text-[10px] uppercase tracking-wider text-neutral-500">
+                {label}
+                {hint ? <span className="normal-case text-neutral-600"> ({hint})</span> : null}
+            </div>
         </div>
-      </main>
-    </div>
-  );
+    );
+}
+
+function Button({
+    children,
+    onClick,
+    disabled,
+    variant = "solid",
+}: Readonly<{
+    children: React.ReactNode;
+    onClick: () => void;
+    disabled?: boolean;
+    variant?: "solid" | "ghost";
+}>) {
+    const base =
+        "w-full rounded-xl px-4 py-4 text-base font-bold transition-colors disabled:cursor-not-allowed";
+    // The disabled state is not decorative: it carries the live reason you cannot
+    // act ("Cooling down · 3 blocks"), read mid-scramble. Dimming it to the usual
+    // near-invisible gray would hide the one thing the player needs.
+    const style =
+        variant === "solid"
+            ? "bg-amber-400 text-neutral-950 hover:bg-amber-300 disabled:bg-neutral-800 disabled:text-neutral-300"
+            : "border border-neutral-800 text-neutral-300 hover:border-neutral-700 disabled:text-neutral-500";
+
+    return (
+        <button type="button" className={`${base} ${style}`} onClick={onClick} disabled={disabled}>
+            {children}
+        </button>
+    );
+}
+
+function Notice({
+    children,
+    tone = "info",
+}: Readonly<{children: React.ReactNode; tone?: "info" | "error"}>) {
+    return (
+        <div
+            className={`rounded-lg border px-3 py-2 text-xs ${
+                tone === "error"
+                    ? "border-rose-900/60 bg-rose-950/40 text-rose-100"
+                    : "border-neutral-800 bg-neutral-900/60 text-neutral-400"
+            }`}
+        >
+            {children}
+        </div>
+    );
+}
+
+/**
+ * Wallet rejections are not errors worth shouting about — the user knows what
+ * they did. Contract reverts are, but only in the game's own language.
+ */
+function readableError(e: unknown): string | null {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (/user rejected|denied transaction/i.test(msg)) return null;
+    if (/CrownProtected/.test(msg)) return "Someone beat you to it — the crown is protected.";
+    if (/CoolingDown/.test(msg)) return "You are still cooling down.";
+    if (/AlreadyYours/.test(msg)) return "You already hold the crown.";
+    if (/NotJoined/.test(msg)) return "Join the session first.";
+    if (/AlreadyClaimed/.test(msg)) return "Already claimed.";
+    if (/SessionClosed/.test(msg)) return "This session has closed.";
+    if (/AlreadyFortified/.test(msg)) return "You have already fortified this reign.";
+    return "Transaction failed.";
 }

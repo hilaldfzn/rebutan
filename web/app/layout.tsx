@@ -1,16 +1,21 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Archivo } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+/*
+ * Archivo, one family, committed — not the Geist/Inter default.
+ *
+ * This is a scoreboard before it is an app: the reign counter has to read from
+ * the back of a hall, so the type needs width and weight rather than the narrow
+ * neutrality of the usual UI grotesques. Archivo carries a genuine expanded
+ * range and holds up large. A single family used with real weight contrast
+ * beats a timid display/body pair.
+ */
+const archivo = Archivo({
+  variable: "--font-archivo",
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  weight: ["400", "600", "700", "800"],
 });
 
 export const metadata: Metadata = {
@@ -23,7 +28,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${archivo.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-neutral-950 text-neutral-100">
         <Providers>{children}</Providers>
