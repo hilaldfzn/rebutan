@@ -2,11 +2,11 @@
 
 **One crown. One room. Your score is how many Monad blocks you held it for.**
 
-Built at [Monad Blitz Jakarta](https://luma.com/ksxks0qo) — 8 August 2026, Markas KOMDIGI.
+Built at [Monad Blitz Jakarta](https://luma.com/ksxks0qo) — 8 August 2026, Midpoint Place, Jakarta.
 
 | | |
 |---|---|
-| **Live app** | **https://web-beige-six-14.vercel.app** |
+| **Live app** | **https://rebutan-monad.vercel.app** |
 | Contract | [`0x87859caeD22239B6e8E3cB7998AAF7c5Fd4A0596`](https://testnet.monadscan.com/address/0x87859caeD22239B6e8E3cB7998AAF7c5Fd4A0596) |
 | Network | Monad Testnet — chain id **10143** |
 | Verified | [MonadVision](https://testnet.monadvision.com/address/0x87859caeD22239B6e8E3cB7998AAF7c5Fd4A0596) · [Monadscan](https://testnet.monadscan.com/address/0x87859caeD22239B6e8E3cB7998AAF7c5Fd4A0596) — perfect match |
@@ -21,6 +21,8 @@ Not estimates — these are from the live deployment above.
 | `steal()` | 132,416 gas |
 | Runtime size | 12,767 bytes (Monad's limit is 128 kb) |
 | Contract tests | 27 passing, incl. a 256-run fuzz on payout solvency |
+| Full lifecycle | join → steal → settle → claim exercised on live testnet |
+| Pot solvency | contract held **exactly 0 MON** after all claims — nothing stranded |
 
 ---
 
@@ -32,11 +34,26 @@ A contested single-holder resource — a crown, a lock, a lane, a turn — is on
 
 ## The solution
 
-One crown lives on-chain. Anyone can steal it. Your score is the number of **Monad blocks** you held it for — a block is 400 ms, so the scoreboard ticks about two and a half times per second.
+One crown lives on-chain. Players stake a fixed **0.1 MON** to join, and whoever holds the crown earns a share of the pot for every **Monad block** they hold it — a block is 400 ms, so earnings tick about two and a half times per second.
 
-Stealing costs nothing but gas. The scarce resource is your own **cooldown**, which grows by 3 blocks with every steal you make, so *when* you spend a steal is the whole game. A freshly taken crown is protected for 3 blocks (~1.2 s), which caps churn no matter how many addresses attack it.
+**Four verbs:**
 
-No token. No stake. No payout. No owner, no admin key, no `payable` function anywhere.
+| Verb | Cost | Effect |
+|---|---|---|
+| `join` | 0.1 MON, once | enter the session, add to the pot |
+| `steal` | gas only | take the crown; **your own** cooldown grows +3 blocks per steal you make |
+| `fortify` | gas only | buy 8 blocks of protection by forfeiting 4 blocks of earnings |
+| `claim` | gas only | take your payout after settlement |
+
+**Stages.** The session runs in three stages by block range, paying **1× → 2× → 3×**. Falling behind early is recoverable and the final third decides most of it.
+
+**Two ways to win, and they disagree.** The pot splits **70% endurance** (pro-rata by stage-weighted blocks held) and **30% long reign** (winner-take-all to the single longest *unbroken* reign). Accumulating many short reigns and spiking one enormous late reign are incompatible plans — which is why breaking someone else's streak is worth doing even when it earns you nothing.
+
+**Reign Record.** Cumulative weighted blocks across every session, soulbound, tiered Pretender → Tyrant. Cosmetic only: a newcomer and a Tyrant steal on identical terms.
+
+The stake is **fixed and never escalates** — an escalating price would make MON a consumable and strand players behind a rate-limited faucet mid-game.
+
+**No owner. No admin key. No privileged withdrawal path.** Nothing here can be paused, drained, or reconfigured by anyone.
 
 ## Why Monad
 
