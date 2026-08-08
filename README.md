@@ -36,6 +36,8 @@ A contested single-holder resource — a crown, a lock, a lane, a turn — is on
 
 One crown lives on-chain. Players stake a fixed **0.1 MON** to join, and whoever holds the crown earns a share of the pot for every **Monad block** they hold it — a block is 400 ms, so earnings tick about two and a half times per second.
 
+**3D spatial gameplay.** Drive your fighter with WASD in a real voxel arena. The crown is worn on the holder's head — to steal it, walk into range. Six visually distinct fighters (unique silhouettes and gear) make ownership clear from across a room. Crown handovers trigger flight animations with arcs, trails, shockwaves, and sparks.
+
 **Four verbs:**
 
 | Verb | Cost | Effect |
@@ -81,6 +83,7 @@ On-chain state (holder, since, blocksHeld)
 |---|---|
 | Contract | Solidity 0.8.28 · Foundry |
 | Frontend | Next.js · TypeScript · Tailwind |
+| 3D Graphics | React Three Fiber · three.js |
 | Chain | wagmi v3 · viem |
 | Hosting | Vercel |
 
@@ -121,7 +124,13 @@ Full deployment and verification steps: [spec/spec-rebutan.md](spec/spec-rebutan
 
 ## Screenshots
 
-_TBD_
+### Landing Page
+![Landing Page](web/public/Image%201.png)
+*Hero section with live arena visualization showing fighters contesting the crown*
+
+### 3D Gameplay Arena
+![Gameplay Arena](web/public/Image%202.png)
+*Playable 3D voxel arena with WASD controls — six distinct fighters circle the crown*
 
 ## Known limitations
 
