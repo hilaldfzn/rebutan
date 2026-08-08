@@ -202,22 +202,6 @@ export default function Landing() {
                 <LiveBlockTicker />
             </section>
 
-            <footer className="flex flex-col gap-3 border-t-4 border-outline pt-6 text-sm">
-                <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-ink-faint">
-                    <span>Monad Testnet · chain {CHAIN_ID}</span>
-                    {contract ? (
-                        <a className="text-ink-muted underline underline-offset-4 hover:text-crown" href={addressUrl(contract)} target="_blank" rel="noreferrer">
-                            {short(contract)}
-                        </a>
-                    ) : null}
-                    <a className="text-ink-muted underline underline-offset-4 hover:text-crown" href={REPO} target="_blank" rel="noreferrer">
-                        Source
-                    </a>
-                </div>
-                <p className="text-ink-faint">
-                    No token. No admin key. Nobody can drain it. Built at Monad Blitz Jakarta.
-                </p>
-            </footer>
         </main>
     );
 }
