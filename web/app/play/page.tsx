@@ -7,7 +7,23 @@ import {useConnect, useConnection, useConnectors, useSwitchChain, useWriteContra
 import {parseEther} from "viem";
 import Link from "next/link";
 
+import dynamic from "next/dynamic";
+
 import {Arena, CrownMark, seatOf} from "@/components/Arena";
+
+/**
+ * The 3D scene is client-only and code-split.
+ *
+ * three.js is ~600kb, which is a real cost on a shared venue access point, so it
+ * must never block first paint or the SSR pass. While it loads — or if WebGL is
+ * unavailable on someone's phone — the flat SVG arena stands in. The game is
+ * fully playable either way; the HUD and every contract call are independent of
+ * which renderer is on screen.
+ */
+const VoxelArena = dynamic(() => import("@/components/VoxelArena"), {
+    ssr: false,
+    loading: () => null,
+});
 import {rebutanAbi} from "@/lib/abi";
 import {
     CHAIN_ID,
@@ -93,6 +109,9 @@ export default function Play() {
         return {labels: map, holderSeat: hSeat};
     }, [roster, s]);
 
+    const hasHolder = Boolean(s && s.holder !== ZERO_ADDRESS);
+    const occupiedSeats = useMemo(() => Object.keys(labels).map(Number), [labels]);
+
     useEffect(() => setError(null), [s?.holder]);
 
     async function send(functionName: string, args: unknown[] = [], value?: bigint) {
@@ -120,15 +139,42 @@ export default function Play() {
 
     return (
         <div className="relative flex min-h-dvh w-full flex-col overflow-hidden">
-            {/* ── SCENE ─────────────────────────────────────────────────── */}
+            {/* ── SCENE ─────────────────────────────────────────────────────
+                Flat arena underneath as the always-available floor, voxel scene
+                layered over it once three.js arrives. The 2D layer is not
+                wasted: it is what the player sees during the download and if
+                WebGL is unavailable. */}
             <div className="absolute inset-0 grid place-items-center px-4">
                 <Arena
-                    className="w-full max-w-[560px] opacity-95"
+                    className="w-full max-w-[420px] opacity-40"
                     holderSeat={holderSeat}
                     labels={labels}
                     stage={stage}
-                    animate={!over}
+                    animate={false}
                 />
+            </div>
+            <VoxelArena
+                className="absolute inset-0 h-full w-full"
+                holderSeat={hasHolder ? holderSeat : -1}
+                occupiedSeats={occupiedSeats}
+                stage={stage}
+            />
+            {/* Seat labels ride above the 3D layer: text in a WebGL scene needs a
+                font atlas and extra weight, and HTML is sharper anyway. */}
+            <div className="pointer-events-none absolute inset-x-0 bottom-24 flex flex-wrap justify-center gap-2 px-4">
+                {Object.entries(labels).map(([seat, label]) => (
+                    <span
+                        key={seat}
+                        className={`hud px-2 py-1 ${
+                            Number(seat) === holderSeat && hasHolder ? "text-crown" : "text-ink-muted"
+                        }`}
+                    >
+                        <span className="pixel text-[8px]">
+                            {Number(seat) === holderSeat && hasHolder ? "♛ " : ""}
+                            {label}
+                        </span>
+                    </span>
+                ))}
             </div>
 
             {/* ── HUD ───────────────────────────────────────────────────── */}
