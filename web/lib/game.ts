@@ -115,11 +115,10 @@ export function estimatedPayout(
 /**
  * Reign Record tiers.
  *
- * The progression ladder is the one device worth borrowing from PassChick's
- * Eggpass: a named rank makes an abstract counter feel like standing, and it
- * gives a returning player something to be. Ours is throne-themed rather than
- * arcade-themed, and cosmetic only — a tier that granted a mechanical edge would
- * unbalance a single-session demo and punish anyone playing for the first time.
+ * A named rank makes an abstract counter feel like standing, and gives a
+ * returning player something to be. Throne-themed, and cosmetic only — a tier
+ * that granted a mechanical edge would unbalance a single-session demo and
+ * punish anyone playing for the first time.
  */
 export const TIERS = [
     {name: "Pretender", at: 0n},

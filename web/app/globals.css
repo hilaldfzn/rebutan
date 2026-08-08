@@ -144,8 +144,7 @@ body {
 }
 
 /* ── GAME HUD CHROME ──────────────────────────────────────────────────────
- * Adapted from PassChick's /play screen, which is the reference for what a
- * game HUD reads like: floating panels over a live scene, never a form.
+ * Arcade HUD panels: floating chrome over a live scene, never a form.
  *
  * The recipe is a dark navy fill, a warm metallic border, a 1px inner highlight
  * along the top edge (so the panel looks stamped rather than drawn), and a hard

@@ -34,9 +34,9 @@ import {useLiveBlock, useRebutan} from "@/lib/useRebutan";
  * The game screen.
  *
  * Structured as a scene with a HUD floating over it, not a page with controls
- * underneath — the arrangement PassChick's /play uses, and the single biggest
- * reason its screen reads as a game. Corners carry state, the centre carries the
- * board, and exactly one button is ever the obvious thing to press.
+ * underneath. That inversion is what separates a game screen from a form.
+ * Corners carry state, the centre carries the board, and exactly one button is
+ * ever the obvious thing to press.
  */
 export default function Play() {
     const {address: player, isConnected, chainId} = useConnection();

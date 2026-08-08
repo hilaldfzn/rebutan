@@ -7,11 +7,10 @@ import {useLiveBlock, useRebutan} from "@/lib/useRebutan";
 /**
  * A live band of real session state on the landing page.
  *
- * Borrowed device: PassChick puts real-time counts on its marketing page, and it
- * works — a static explainer asks you to believe a game exists, whereas a pot
- * that is climbing while you read proves it. The numbers here come from the
- * contract, not a CMS, so an empty session reads honestly as empty rather than
- * being dressed up with placeholder figures.
+ * A static explainer asks you to believe a game exists; a pot climbing while you
+ * read proves it. The numbers come from the contract, not a CMS, so an empty
+ * session reads honestly as empty rather than being dressed up with placeholder
+ * figures.
  */
 export function LiveStats() {
     const block = useLiveBlock();

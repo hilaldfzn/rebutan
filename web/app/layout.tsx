@@ -23,10 +23,9 @@ const bungee = Bungee({
 /*
  * Press Start 2P — the arcade bitmap face, used ONLY for HUD chrome.
  *
- * PassChick's game screen sets every panel label in a pixel face, and that is a
- * large part of why its HUD reads as a game rather than a web app. It is close
- * to unreadable in paragraphs, so it is confined to short all-caps labels and
- * figures: HOPS, CURRENT CP, the timer. Body copy stays Archivo.
+ * A bitmap face on panel labels is most of what separates a game HUD from a web
+ * app. It is close to unreadable in paragraphs, so it is confined to short
+ * all-caps labels and figures. Body copy stays Archivo.
  */
 const pressStart = Press_Start_2P({
   variable: "--font-pixel",
