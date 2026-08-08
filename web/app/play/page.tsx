@@ -13,8 +13,7 @@ import {
 import {parseEther} from "viem";
 import Link from "next/link";
 
-// Aliased: this file already has a local `Crown` for the on-screen panel.
-import {Crown as CrownMark} from "@/components/Crown";
+import {Arena, CrownMark} from "@/components/Arena";
 
 import {rebutanAbi} from "@/lib/abi";
 import {
@@ -89,14 +88,14 @@ export default function Page() {
             <header className="flex items-center justify-between">
                 <Link href="/" className="flex items-center gap-2 text-ink-muted hover:text-ink">
                     <CrownMark className="h-5 w-5 text-crown" />
-                    <span className="text-sm font-bold uppercase tracking-[0.2em]">Rebutan</span>
+                    <span className="display text-sm uppercase tracking-widest">Rebutan</span>
                 </Link>
                 <span className="text-xs tabular-nums text-ink-faint">#{block.toString()}</span>
             </header>
 
             <p className="text-sm leading-snug text-ink-muted">
-                Hold the crown. You earn for every Monad block you hold it —{" "}
-                <span className="text-ink">a block is 400&nbsp;milliseconds.</span>
+                Grab it. Hold it. Get paid every block —{" "}
+                <span className="text-ink">a block is 400ms.</span>
             </p>
 
             {!g.address ? (
@@ -115,9 +114,9 @@ export default function Page() {
             />
 
             <div className="grid grid-cols-3 gap-3 text-center">
-                <Stat label="pot" value={s ? formatMon(s.pot, 2) : "—"} unit="MON" />
-                <Stat label="players" value={s ? String(s.players) : "—"} />
-                <Stat label="your take" value={s ? formatMon(payout, 3) : "—"} unit="MON" hint="est" />
+                <Stat label="prize pot" value={s ? formatMon(s.pot, 2) : "—"} unit="MON" />
+                <Stat label="fighters" value={s ? String(s.players) : "—"} />
+                <Stat label="your cut" value={s ? formatMon(payout, 3) : "—"} unit="MON" hint="est" />
             </div>
 
             <div className="mt-auto flex flex-col gap-3">
@@ -196,7 +195,7 @@ function Actions({
         if (!session?.settled) {
             return (
                 <Button onClick={() => onSend("settle")} disabled={busy}>
-                    Settle session
+                    End the round
                 </Button>
             );
         }
@@ -205,7 +204,7 @@ function Actions({
                 onClick={() => onSend("claim", [game.sessionId])}
                 disabled={!game.joined || game.claimed || busy}
             >
-                {game.claimed ? "Claimed" : `Claim ${formatMon(payout, 3)} MON`}
+                {game.claimed ? "Paid out" : `Cash out ${formatMon(payout, 3)} MON`}
             </Button>
         );
     }
@@ -213,7 +212,7 @@ function Actions({
     if (!game.joined) {
         return (
             <Button onClick={() => onSend("join", [], parseEther(STAKE_MON))} disabled={busy}>
-                Join — {STAKE_MON} MON
+                Join the fight — {STAKE_MON} MON
             </Button>
         );
     }
@@ -230,8 +229,8 @@ function Actions({
             {isHolder ? (
                 <Button variant="ghost" onClick={() => onSend("fortify")} disabled={session?.fortified || busy}>
                     {session?.fortified
-                        ? "Already fortified this reign"
-                        : `Fortify · +${FORTIFY_PROTECT_BLOCKS} protected, −${FORTIFY_COST_BLOCKS} earned`}
+                        ? "Bolted down already"
+                        : `Fortify · +${FORTIFY_PROTECT_BLOCKS} safe / −${FORTIFY_COST_BLOCKS} paid`}
                 </Button>
             ) : null}
         </>
@@ -239,12 +238,12 @@ function Actions({
 }
 
 function stealLabel(isHolder: boolean, cooldown: bigint, protection: bigint): string {
-    if (isHolder) return "The crown is yours";
-    if (cooldown > 0n) return `Cooling down · ${cooldown} blocks`;
+    if (isHolder) return "You're wearing it";
+    if (cooldown > 0n) return `Cooling down · ${cooldown}`;
     // Firing into a protected crown wastes real MON: Monad charges on gas_limit,
     // so a reverted steal still costs full gas. The button stays hard-disabled.
-    if (protection > 0n) return `Protected · ${protection} blocks`;
-    return "Steal the crown";
+    if (protection > 0n) return `Locked down · ${protection}`;
+    return "Steal it";
 }
 
 function Crown({
@@ -262,45 +261,46 @@ function Crown({
     reign: bigint;
     earned: bigint;
 }>) {
-    // Secondary text takes an amber tint when the panel is amber: neutral gray
-    // goes muddy on a colored ground and loses legibility at projector distance.
-    const quiet = isHolder ? "text-crown/85" : "text-ink-faint";
-
-    let heading = "Crown";
-    if (over) heading = "Session closed";
-    else if (isHolder) heading = "You hold it";
+    let heading = "The crown";
+    if (over) heading = "Round over";
+    else if (isHolder) heading = "It's yours — hold on";
 
     return (
-        <section
-            className={`rounded-2xl border p-6 transition-colors ${
-                isHolder ? "border-crown/60 bg-crown/10" : "border-line bg-surface"
-            }`}
-        >
-            <div className={`flex items-center justify-between text-xs uppercase tracking-widest ${quiet}`}>
+        <section className={`slab-lg bg-arena ${isHolder ? "bg-crown/15" : ""}`}>
+            <div
+                className={`display flex items-center justify-between px-4 py-2 text-[11px] uppercase tracking-widest text-outline ${
+                    isHolder ? "bg-crown" : "bg-violet"
+                }`}
+            >
                 <span>{heading}</span>
                 <StageBadge stage={stage} holding={isHolder} />
             </div>
 
-            <div
-                className={`mt-3 text-6xl font-extrabold tabular-nums leading-none ${
-                    isHolder ? "text-crown" : "text-ink"
-                }`}
-            >
-                {reign.toString()}
-            </div>
-            <div className={`mt-1 text-xs ${quiet}`}>
-                blocks held · {earned.toString()} weighted
+            {/* The arena doubles as a live indicator: the crowned seat lights up
+                when the connected player is the one holding it. */}
+            <div className="flex items-center gap-4 px-5 pt-5">
+                <Arena className="h-24 w-24 shrink-0" holderSeat={isHolder ? 3 : 0} animate={!over} />
+                <div className="min-w-0">
+                    <div
+                        className={`display stroked text-6xl tabular-nums ${
+                            isHolder ? "text-crown" : "text-ink"
+                        }`}
+                    >
+                        {reign.toString()}
+                    </div>
+                    <div className="mt-1 text-[11px] font-bold uppercase tracking-wider text-ink-muted">
+                        blocks held · {earned.toString()} scored
+                    </div>
+                </div>
             </div>
 
-            <div
-                className={`mt-4 border-t pt-3 text-sm ${
-                    isHolder ? "border-crown/25" : "border-line"
-                }`}
-            >
-                <span className={quiet}>holder </span>
+            <div className="mt-4 flex items-center gap-2 border-t-[3px] border-outline px-5 py-3 text-sm">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-ink-faint">
+                    on the throne
+                </span>
                 {session && session.holder !== ZERO_ADDRESS ? (
                     <a
-                        className="underline decoration-line underline-offset-4"
+                        className="font-bold underline underline-offset-4 hover:text-crown"
                         href={addressUrl(session.holder)}
                         target="_blank"
                         rel="noreferrer"
@@ -308,7 +308,7 @@ function Crown({
                         {short(session.holder)}
                     </a>
                 ) : (
-                    <span className="text-ink-muted">unclaimed</span>
+                    <span className="font-bold text-ink-muted">nobody yet</span>
                 )}
             </div>
         </section>
@@ -316,16 +316,16 @@ function Crown({
 }
 
 function StageBadge({stage, holding}: Readonly<{stage: 0 | 1 | 2 | 3; holding: boolean}>) {
-    const quiet = holding ? "text-crown/85" : "text-ink-faint";
-    if (stage === 0) return <span className={quiet}>ended</span>;
-
-    let tone = quiet;
-    if (stage === 3) tone = "text-danger";
-    else if (stage === 2) tone = "text-crown";
-
+    if (stage === 0) return <span className="opacity-70">ended</span>;
+    // Stage 3 shouts, because it is worth triple and the round is nearly gone.
+    if (stage === 3) {
+        return (
+            <span className="slab-sm bg-danger px-2 py-0.5 text-outline">surge · 3×</span>
+        );
+    }
     return (
-        <span className={tone}>
-            stage {stage} · {stage}×
+        <span className={holding ? "opacity-80" : "opacity-90"}>
+            zone {stage} · {stage}×
         </span>
     );
 }
@@ -337,14 +337,14 @@ function Stat({
     hint,
 }: Readonly<{label: string; value: string; unit?: string; hint?: string}>) {
     return (
-        <div className="rounded-xl border border-line bg-surface px-2 py-3">
-            <div className="text-lg tabular-nums">
+        <div className="slab-sm bg-arena px-2 py-3">
+            <div className="display text-lg tabular-nums text-ink">
                 {value}
                 {unit ? <span className="ml-1 text-[10px] text-ink-faint">{unit}</span> : null}
             </div>
-            <div className="text-[10px] uppercase tracking-wider text-ink-faint">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">
                 {label}
-                {hint ? <span className="normal-case text-ink-faint"> ({hint})</span> : null}
+                {hint ? <span className="normal-case"> ({hint})</span> : null}
             </div>
         </div>
     );
@@ -362,14 +362,14 @@ function Button({
     variant?: "solid" | "ghost";
 }>) {
     const base =
-        "w-full rounded-xl px-4 py-4 text-base font-bold transition-colors disabled:cursor-not-allowed";
+        "slab pressable display w-full px-4 py-5 text-lg uppercase disabled:cursor-not-allowed disabled:shadow-[3px_3px_0_var(--outline)]";
     // The disabled state is not decorative: it carries the live reason you cannot
-    // act ("Cooling down · 3 blocks"), read mid-scramble. Dimming it to the usual
-    // near-invisible gray would hide the one thing the player needs.
+    // act ("cooling down · 3 blocks"), read mid-scramble. Dimming it to the usual
+    // near-invisible grey would hide the one thing the player needs.
     const style =
         variant === "solid"
-            ? "bg-crown text-ground hover:bg-[#ffc257] disabled:bg-line disabled:text-ink-muted"
-            : "border border-line text-ink-muted hover:border-violet-dim disabled:text-ink-faint";
+            ? "bg-magenta text-outline disabled:bg-surface disabled:text-ink-muted"
+            : "bg-cyan text-outline disabled:bg-surface disabled:text-ink-muted";
 
     return (
         <button type="button" className={`${base} ${style}`} onClick={onClick} disabled={disabled}>
@@ -384,10 +384,8 @@ function Notice({
 }: Readonly<{children: React.ReactNode; tone?: "info" | "error"}>) {
     return (
         <div
-            className={`rounded-lg border px-3 py-2 text-xs ${
-                tone === "error"
-                    ? "border-danger/40 bg-danger/10 text-ink"
-                    : "border-line bg-surface text-ink-muted"
+            className={`slab-sm px-3 py-2 text-xs font-bold ${
+                tone === "error" ? "shake bg-danger text-outline" : "bg-surface text-ink-muted"
             }`}
         >
             {children}

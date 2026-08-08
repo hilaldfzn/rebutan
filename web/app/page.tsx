@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import {Crown, TickField} from "@/components/Crown";
+import {Arena, CrownMark} from "@/components/Arena";
 import {LiveBlockTicker} from "@/components/LiveBlockTicker";
 import {LiveStats} from "@/components/LiveStats";
 import {TIERS} from "@/lib/game";
@@ -21,264 +21,233 @@ export default function Landing() {
     const contract = envContractAddress();
 
     return (
-        <div className="relative overflow-hidden">
-            {/* Texture, not decoration: large dark areas go dead flat on a projector. */}
-            <TickField className="pointer-events-none absolute inset-0 h-full w-full text-violet opacity-[0.07]" />
-
-            <main className="relative mx-auto flex w-full max-w-3xl flex-col gap-24 px-6 py-16 sm:py-24">
-                {/* ── Hero ─────────────────────────────────────────────────── */}
-                <section className="flex flex-col gap-8">
+        <main className="mx-auto flex w-full max-w-5xl flex-col gap-20 px-5 py-10 sm:gap-28 sm:py-16">
+            {/* ── HERO ─────────────────────────────────────────────────────
+                Asymmetric on purpose: copy left, arena right, the arena
+                bleeding slightly larger than its column. A centred hero with a
+                screenshot underneath is the SaaS default and reads as a product
+                page; this should read as a cabinet. */}
+            <section className="grid items-center gap-10 lg:grid-cols-[1.05fr_1fr]">
+                <div className="flex flex-col gap-6">
                     <div className="flex items-center gap-3">
-                        <Crown className="h-7 w-7 text-crown" />
-                        <span className="text-sm font-bold uppercase tracking-[0.32em] text-ink-muted">
+                        <CrownMark className="h-8 w-8 text-crown" />
+                        <span className="display text-sm uppercase tracking-widest text-crown">
                             Rebutan
                         </span>
                     </div>
 
-                    <h1 className="display text-5xl text-ink sm:text-7xl">
-                        One crown.
+                    <h1 className="display stroked text-5xl uppercase text-ink sm:text-6xl">
+                        Grab the
                         <br />
-                        <span className="text-crown">You are paid</span>
+                        <span className="text-crown">crown.</span>
                         <br />
-                        by the block.
+                        Hold it.
                     </h1>
 
-                    <p className="max-w-xl text-lg leading-relaxed text-ink-muted">
-                        Everyone in the room is fighting over a single position on Monad. Every
-                        block you keep it, you earn a share of the pot. Lose it and your blocks
-                        bank — then you wait for your moment.
+                    <p className="max-w-md text-lg leading-relaxed text-ink-muted">
+                        A whole room is coming for one crown. Every block you keep it, you get
+                        paid. Blink and it&rsquo;s gone.
                     </p>
 
-                    {/* The claim, verifying itself while you read the sentence under it. */}
-                    <div className="flex flex-col gap-2 border-l-2 border-crown-dim pl-5">
-                        <LiveBlockTicker />
-                        <p className="text-sm text-ink-muted">
-                            Monad testnet, climbing every <strong className="text-ink">400ms</strong>.
-                            That number is not a decoration — it is the unit this game pays in.
-                        </p>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-4 pt-2">
+                    <div className="flex flex-wrap items-center gap-4">
                         <Link
                             href="/play"
-                            className="rounded-xl bg-crown px-7 py-4 text-base font-bold text-ground transition-colors hover:bg-[#ffc257]"
+                            className="slab pressable display rounded-none bg-crown px-8 py-4 text-lg uppercase text-outline"
                         >
-                            Enter the scramble
+                            Play now
                         </Link>
-                        <span className="text-sm text-ink-faint">
-                            {STAKE_MON} MON to join · testnet only
+                        <span className="slab-sm bg-surface px-3 py-2 text-xs font-bold uppercase tracking-wide text-ink-muted">
+                            {STAKE_MON} MON · testnet
                         </span>
                     </div>
-                </section>
+                </div>
 
-                {/* ── Live session ─────────────────────────────────────────── */}
-                <section className="flex flex-col gap-5">
-                    <SectionLabel eyebrow="right now">The session on chain</SectionLabel>
-                    <LiveStats />
-                </section>
-
-                {/* ── The rule ─────────────────────────────────────────────── */}
-                <section className="flex flex-col gap-8">
-                    <SectionLabel eyebrow="how it plays">Three moves</SectionLabel>
-
-                    <div className="grid gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-3">
-                        <Mechanic
-                            index="01"
-                            title="Steal"
-                            cost="gas only"
-                            body={`Take the crown from whoever has it. Free — but every steal you make lengthens your own cooldown by three blocks. Steals are rationed by time, never by money, so running low on MON can't eliminate you.`}
-                        />
-                        <Mechanic
-                            index="02"
-                            title="Fortify"
-                            cost={`+${FORTIFY_PROTECT_BLOCKS} / −${FORTIFY_COST_BLOCKS}`}
-                            body={`Holding used to be passive. Now you can buy ${FORTIFY_PROTECT_BLOCKS} blocks of protection by forfeiting ${FORTIFY_COST_BLOCKS} blocks of earnings. Defend a lead, or stay exposed and keep earning at full rate.`}
-                        />
-                        <Mechanic
-                            index="03"
-                            title="Stages"
-                            cost="1× → 2× → 3×"
-                            body="The session runs in three stages and each one pays more than the last. Falling behind early is recoverable, and the final third decides almost everything."
-                        />
+                <div className="relative">
+                    <Arena className="w-full drop-shadow-[8px_8px_0_var(--outline)]" holderSeat={3} />
+                    <div className="slab-sm absolute -bottom-2 left-1/2 -translate-x-1/2 bg-magenta px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-wider text-outline">
+                        5 hunting · 1 holding
                     </div>
+                </div>
+            </section>
 
-                    <p className="text-sm text-ink-faint">
-                        A freshly taken crown is protected for {MIN_REIGN_BLOCKS} blocks — the same
-                        cadence Monad already throttles low-balance accounts at, so the scramble
-                        stays at human speed instead of becoming a bot war.
-                    </p>
-                </section>
+            {/* ── LIVE SCOREBOARD ──────────────────────────────────────── */}
+            <section className="flex flex-col gap-5">
+                <Banner color="bg-violet">Live on chain right now</Banner>
+                <LiveStats />
+            </section>
 
-                {/* ── Two ways to win ──────────────────────────────────────── */}
-                <section className="flex flex-col gap-8">
-                    <SectionLabel>Two ways to win, and they disagree</SectionLabel>
+            {/* ── MOVES ────────────────────────────────────────────────────
+                Colour-coded to match the arena: magenta attacks, cyan defends,
+                crown is what you are fighting over. */}
+            <section className="flex flex-col gap-6">
+                <Banner color="bg-magenta">Three moves</Banner>
 
-                    <div className="grid gap-6 sm:grid-cols-2">
-                        <Split
-                            share="70%"
-                            title="Endurance"
-                            body="Split pro-rata across everyone, by total stage-weighted blocks held. Steal often, bank many short reigns."
-                            accent="text-crown"
-                        />
-                        <Split
-                            share="30%"
-                            title="The Long Reign"
-                            body="Winner takes all, to the single longest unbroken reign. Hoard your steals, take it late, and hold on."
-                            accent="text-violet"
-                        />
+                <div className="grid gap-6 sm:grid-cols-3">
+                    <Move
+                        index="01"
+                        title="Steal"
+                        tag="attack"
+                        color="bg-magenta"
+                        rotate="-rotate-1"
+                        body="Rip the crown off whoever has it. Free — but every steal you make grows your OWN cooldown. Running out of MON can never knock you out. Running out of patience can."
+                    />
+                    <Move
+                        index="02"
+                        title="Fortify"
+                        tag="defend"
+                        color="bg-cyan"
+                        rotate="rotate-1"
+                        body={`Bolt the crown down for ${FORTIFY_PROTECT_BLOCKS} blocks — and pay ${FORTIFY_COST_BLOCKS} blocks of earnings for the privilege. Turtle up, or stay greedy and stay exposed.`}
+                    />
+                    <Move
+                        index="03"
+                        title="Surge"
+                        tag="1× → 2× → 3×"
+                        color="bg-crown"
+                        rotate="-rotate-1"
+                        body="Three zones, and the last one pays triple. Whatever happened in the opening barely matters. The endgame is where the crown gets expensive."
+                    />
+                </div>
+
+                <p className="slab-sm bg-surface px-4 py-3 text-sm text-ink-muted">
+                    A fresh crown is untouchable for {MIN_REIGN_BLOCKS} blocks — the same beat
+                    Monad already throttles small accounts at. The scramble stays human, not a bot
+                    war.
+                </p>
+            </section>
+
+            {/* ── WIN CONDITIONS ─────────────────────────────────────────── */}
+            <section className="flex flex-col gap-6">
+                <Banner color="bg-crown">Two ways to win. Pick a side.</Banner>
+
+                <div className="grid items-stretch gap-6 sm:grid-cols-[1fr_auto_1fr]">
+                    <Split
+                        share="70%"
+                        title="The Grinder"
+                        body="Split across everyone by total blocks held. Steal constantly. Bank a hundred short reigns and let them add up."
+                        color="text-crown"
+                        rotate="-rotate-1"
+                    />
+                    <div className="flex items-center justify-center">
+                        <span className="display stroked text-3xl text-magenta">VS</span>
                     </div>
+                    <Split
+                        share="30%"
+                        title="The Tyrant"
+                        body="Winner takes all, to the single longest unbroken reign. Sit on your steals. Take it late. Refuse to let go."
+                        color="text-cyan"
+                        rotate="rotate-1"
+                    />
+                </div>
 
-                    <p className="max-w-2xl text-base leading-relaxed text-ink-muted">
-                        You cannot chase both. And because one player&rsquo;s streak is worth 30% of
-                        the pot, breaking someone else&rsquo;s reign is worth doing even when it
-                        earns you nothing — which is where the game stops being a scramble and
-                        starts being an argument.
-                    </p>
-                </section>
+                <p className="max-w-2xl text-base leading-relaxed text-ink-muted">
+                    You can&rsquo;t chase both. And since one player&rsquo;s streak is worth 30% of
+                    the pot, smashing someone else&rsquo;s reign pays off even when you gain
+                    nothing yourself — which is the moment this stops being a scramble and turns
+                    into a grudge.
+                </p>
+            </section>
 
-                {/* ── Why Monad ────────────────────────────────────────────── */}
-                <section className="flex flex-col gap-6 rounded-2xl border border-violet-dim/50 bg-surface p-8">
-                    <SectionLabel>Why this only works here</SectionLabel>
+            {/* ── RANKS ────────────────────────────────────────────────────── */}
+            <section className="flex flex-col gap-6">
+                <Banner color="bg-cyan">Ranks — they never reset</Banner>
 
-                    <p className="text-lg leading-relaxed text-ink">
-                        We could not measure this game in seconds.
-                    </p>
-                    <p className="max-w-2xl leading-relaxed text-ink-muted">
-                        Monad produces a block roughly every 400&nbsp;milliseconds, and{" "}
-                        <code className="rounded bg-ground px-1.5 py-0.5 text-sm text-violet">
-                            block.timestamp
-                        </code>{" "}
-                        only has one-second resolution — so two or three consecutive blocks carry
-                        the same timestamp. Scoring in seconds would collapse most reigns to zero
-                        and tie the rest. So the payout is denominated in <strong className="text-ink">blocks</strong>,
-                        and the chain&rsquo;s own cadence became the unit of account.
-                    </p>
-                    <p className="max-w-2xl leading-relaxed text-ink-muted">
-                        That decision does not exist on a twelve-second chain. Neither does the
-                        game: you would spend twelve seconds not knowing whether you were still
-                        king. It would not degrade — it would stop being playable.
-                    </p>
-                </section>
-
-                {/* ── Progression ──────────────────────────────────────────── */}
-                <section className="flex flex-col gap-6">
-                    <SectionLabel eyebrow="what survives the session">The Reign Record</SectionLabel>
-
-                    <p className="max-w-2xl leading-relaxed text-ink-muted">
-                        Sessions end and pots are paid out, but every block you have ever held
-                        accumulates against your address permanently. It cannot be transferred,
-                        bought, or reset — the only way to move up is to have actually held the
-                        crown while people were trying to take it from you.
-                    </p>
-
-                    <div className="rounded-2xl border border-line bg-surface px-6 py-2">
-                        {TIERS.map((t, i) => (
-                            <TierRow
-                                key={t.name}
-                                name={t.name}
-                                at={t.at}
-                                isLast={i === TIERS.length - 1}
-                            />
-                        ))}
-                    </div>
-
-                    <p className="text-sm text-ink-faint">
-                        Status only. A tier never grants a mechanical advantage — a newcomer and a
-                        Tyrant steal on exactly the same terms.
-                    </p>
-                </section>
-
-                {/* ── Footer ───────────────────────────────────────────────── */}
-                <footer className="flex flex-col gap-4 border-t border-line pt-8 text-sm">
-                    <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-ink-faint">
-                        <span>Monad Testnet · chain {CHAIN_ID}</span>
-                        {contract ? (
-                            <a
-                                className="text-ink-muted underline decoration-line underline-offset-4 hover:text-ink"
-                                href={addressUrl(contract)}
-                                target="_blank"
-                                rel="noreferrer"
-                            >
-                                {short(contract)}
-                            </a>
-                        ) : null}
-                        <a
-                            className="text-ink-muted underline decoration-line underline-offset-4 hover:text-ink"
-                            href={REPO}
-                            target="_blank"
-                            rel="noreferrer"
+                <div className="grid gap-3 sm:grid-cols-5">
+                    {TIERS.map((t, i) => (
+                        <div
+                            key={t.name}
+                            className={`slab-sm flex flex-col gap-1 px-3 py-4 text-center ${
+                                i === TIERS.length - 1 ? "bg-crown text-outline" : "bg-surface"
+                            }`}
                         >
-                            Source
-                        </a>
-                    </div>
-                    <p className="text-ink-faint">
-                        No token. No admin key. No privileged withdrawal. Built at Monad Blitz
-                        Jakarta.
-                    </p>
-                </footer>
-            </main>
-        </div>
-    );
-}
+                            <span className="display text-xs uppercase">{t.name}</span>
+                            <span
+                                className={`tabular-nums text-[11px] ${
+                                    i === TIERS.length - 1 ? "text-outline/70" : "text-ink-faint"
+                                }`}
+                            >
+                                {t.at === 0n ? "start" : `${t.at.toLocaleString("en-US")}+`}
+                            </span>
+                        </div>
+                    ))}
+                </div>
 
-/**
- * Section headings carry weight rather than whispering.
- *
- * The earlier treatment was a small tracked-out label — tasteful and forgettable.
- * A room reading this on a phone between demos needs the structure to be
- * scannable at a glance, so headings are set large and uppercase with the eyebrow
- * demoted to a supporting line.
- */
-function SectionLabel({
-    children,
-    eyebrow,
-}: Readonly<{children: React.ReactNode; eyebrow?: string}>) {
-    return (
-        <div className="flex flex-col gap-2">
-            {eyebrow ? (
-                <span className="text-[11px] font-bold uppercase tracking-[0.28em] text-violet">
-                    {eyebrow}
+                <p className="text-sm text-ink-muted">
+                    Every block you have ever held stacks against your address forever. Can&rsquo;t
+                    be bought, traded, or reset. Pure bragging rights — a Tyrant and a first-timer
+                    steal on exactly the same terms.
+                </p>
+            </section>
+
+            {/* ── THE CHAIN BIT ───────────────────────────────────────────
+                Deliberately last and deliberately quiet. The gameplay has to
+                land first; this is the receipt, not the pitch. */}
+            <section className="slab flex flex-col gap-4 bg-surface p-7">
+                <span className="display text-xs uppercase tracking-widest text-violet">
+                    The technical bit, briefly
                 </span>
-            ) : null}
-            <h2 className="display text-3xl uppercase text-ink sm:text-4xl">{children}</h2>
-        </div>
+
+                <p className="text-lg leading-relaxed text-ink">
+                    We couldn&rsquo;t measure this game in seconds.
+                </p>
+                <p className="max-w-2xl leading-relaxed text-ink-muted">
+                    Monad makes a block every ~400ms, but{" "}
+                    <code className="bg-ground px-1.5 py-0.5 text-sm text-cyan">block.timestamp</code>{" "}
+                    only resolves to whole seconds — two or three blocks share one. Scoring in
+                    seconds would flatten most reigns to zero. So the payout counts{" "}
+                    <strong className="text-crown">blocks</strong>, and the chain&rsquo;s own pulse
+                    became the unit of account. On a twelve-second chain this game doesn&rsquo;t get
+                    worse; it stops existing.
+                </p>
+                <LiveBlockTicker />
+            </section>
+
+            <footer className="flex flex-col gap-3 border-t-4 border-outline pt-6 text-sm">
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-ink-faint">
+                    <span>Monad Testnet · chain {CHAIN_ID}</span>
+                    {contract ? (
+                        <a className="text-ink-muted underline underline-offset-4 hover:text-crown" href={addressUrl(contract)} target="_blank" rel="noreferrer">
+                            {short(contract)}
+                        </a>
+                    ) : null}
+                    <a className="text-ink-muted underline underline-offset-4 hover:text-crown" href={REPO} target="_blank" rel="noreferrer">
+                        Source
+                    </a>
+                </div>
+                <p className="text-ink-faint">
+                    No token. No admin key. Nobody can drain it. Built at Monad Blitz Jakarta.
+                </p>
+            </footer>
+        </main>
     );
 }
 
-function Mechanic({
+function Banner({children, color}: Readonly<{children: React.ReactNode; color: string}>) {
+    return (
+        <h2 className={`slab display inline-block w-fit -rotate-1 px-4 py-2 text-xl uppercase text-outline sm:text-2xl ${color}`}>
+            {children}
+        </h2>
+    );
+}
+
+function Move({
     index,
     title,
-    cost,
+    tag,
     body,
-}: Readonly<{index: string; title: string; cost: string; body: string}>) {
+    color,
+    rotate,
+}: Readonly<{index: string; title: string; tag: string; body: string; color: string; rotate: string}>) {
     return (
-        <div className="flex flex-col gap-3 bg-ground p-6">
-            {/* Numbered steps: the reader should be able to tell how many ideas
-                they have to hold before committing to reading any of them. */}
-            <span className="display text-2xl tabular-nums text-violet-dim">{index}</span>
-            <div className="flex items-baseline justify-between gap-2">
-                <h3 className="text-xl font-bold text-ink">{title}</h3>
-                <span className="text-[11px] uppercase tracking-wider text-ink-faint">{cost}</span>
+        <div className={`slab flex flex-col gap-3 bg-arena p-5 ${rotate}`}>
+            <div className="flex items-center justify-between">
+                <span className="display text-2xl tabular-nums text-ink-faint">{index}</span>
+                <span className={`slab-sm px-2 py-1 text-[10px] font-extrabold uppercase tracking-wider text-outline ${color}`}>
+                    {tag}
+                </span>
             </div>
+            <h3 className="display text-2xl uppercase text-ink">{title}</h3>
             <p className="text-sm leading-relaxed text-ink-muted">{body}</p>
-        </div>
-    );
-}
-
-function TierRow({
-    name,
-    at,
-    isLast,
-}: Readonly<{name: string; at: bigint; isLast: boolean}>) {
-    return (
-        <div className="flex items-baseline justify-between gap-4 py-3">
-            <span className={`text-base font-bold ${isLast ? "text-crown" : "text-ink"}`}>
-                {name}
-            </span>
-            <span className="flex-1 border-b border-dashed border-line" />
-            <span className="tabular-nums text-sm text-ink-muted">
-                {at === 0n ? "from the first block" : `${at.toLocaleString("en-US")} blocks`}
-            </span>
         </div>
     );
 }
@@ -287,12 +256,13 @@ function Split({
     share,
     title,
     body,
-    accent,
-}: Readonly<{share: string; title: string; body: string; accent: string}>) {
+    color,
+    rotate,
+}: Readonly<{share: string; title: string; body: string; color: string; rotate: string}>) {
     return (
-        <div className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-7">
-            <span className={`display text-5xl tabular-nums ${accent}`}>{share}</span>
-            <h3 className="text-lg font-bold text-ink">{title}</h3>
+        <div className={`slab flex flex-col gap-2 bg-arena p-6 ${rotate}`}>
+            <span className={`display stroked text-5xl tabular-nums ${color}`}>{share}</span>
+            <h3 className="display text-lg uppercase text-ink">{title}</h3>
             <p className="text-sm leading-relaxed text-ink-muted">{body}</p>
         </div>
     );

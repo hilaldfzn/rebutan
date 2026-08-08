@@ -28,15 +28,16 @@ export function LiveStats() {
     else if (s) status = "unclaimed";
 
     return (
-        <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-4">
-            <Cell label="pot" value={s ? formatMon(s.pot, 2) : "—"} unit="MON" />
-            <Cell label="players" value={s ? String(s.players) : "—"} />
+        <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <Cell label="prize pot" value={s ? formatMon(s.pot, 2) : "—"} unit="MON" accent="bg-crown" />
+            <Cell label="fighters" value={s ? String(s.players) : "—"} accent="bg-magenta" />
             <Cell
-                label="holder"
-                value={s && contested ? short(s.holder) : "—"}
-                tone={contested && !over ? "text-crown" : undefined}
+                label="wearing it"
+                value={s && contested ? short(s.holder) : "nobody"}
+                accent="bg-cyan"
+                small
             />
-            <Cell label="status" value={status} small />
+            <Cell label="zone" value={status} accent="bg-violet" small />
         </dl>
     );
 }
@@ -45,18 +46,24 @@ function Cell({
     label,
     value,
     unit,
-    tone,
+    accent,
     small,
-}: Readonly<{label: string; value: string; unit?: string; tone?: string; small?: boolean}>) {
+}: Readonly<{label: string; value: string; unit?: string; accent: string; small?: boolean}>) {
     return (
-        <div className="bg-ground px-5 py-4">
-            <dd className={`tabular-nums ${small ? "text-base" : "text-2xl"} ${tone ?? "text-ink"}`}>
+        <div className="slab flex flex-col bg-arena">
+            <dt
+                className={`display px-3 py-1.5 text-[10px] uppercase tracking-widest text-outline ${accent}`}
+            >
+                {label}
+            </dt>
+            <dd
+                className={`px-3 py-4 tabular-nums text-ink ${
+                    small ? "text-base font-bold" : "display text-2xl"
+                }`}
+            >
                 {value}
                 {unit ? <span className="ml-1 text-[11px] text-ink-faint">{unit}</span> : null}
             </dd>
-            <dt className="mt-1 text-[10px] font-bold uppercase tracking-[0.18em] text-ink-faint">
-                {label}
-            </dt>
         </div>
     );
 }

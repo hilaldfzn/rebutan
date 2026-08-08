@@ -1,36 +1,35 @@
 @import "tailwindcss";
 
 /*
- * Committed dark, deliberately — not a theme.
+ * NEO-BRUTALIST ARCADE
  *
- * The room this runs in is a dim conference hall and the projector is the only
- * light source. A light mode would be a liability on the wall and irrelevant on
- * the phones, so there is no `prefers-color-scheme` branch: the ground is dark
- * everywhere, always.
+ * The brief: someone landing here should think "this is a game" before they
+ * think anything else. That means hard edges, loud colour, and weight — the
+ * visual language of a cabinet, not a dashboard.
  *
- * The ground carries a violet cast rather than being neutral black. It ties to
- * Monad without quoting its logo, and it makes the amber crown read as warm
- * metal against it instead of as a yellow blob on grey.
+ * Dark ground is kept deliberately against the usual brutalist paper-white. The
+ * room is a dim hall and the projector is the only light source; a white page
+ * would blow out the wall and blind the front row. So: arcade darkness, with the
+ * blocks doing the shouting.
  */
 :root {
-  --ground: #0b0a10;
-  --surface: #141220;
-  --line: #241f38;
+  /* Ground — near-black with a violet cast, tying to Monad without quoting it */
+  --ground: #0d0a18;
+  --arena: #17102b;
+  --surface: #1e1636;
 
-  --ink: #edeaf6;
-  --ink-muted: #8b84a8;
-  --ink-faint: #5b5474;
+  --ink: #fdfcff;
+  --ink-muted: #a99fd0;
+  --ink-faint: #6b628f;
 
-  /* Crown. The one warm colour, spent only on what you are fighting over. */
-  --crown: #ffb02e;
-  --crown-dim: #b87d16;
+  /* The five loud ones. Each has exactly one job. */
+  --crown: #ffd23f; /* the thing you are fighting over */
+  --violet: #836ef9; /* Monad, structure, the chain */
+  --magenta: #ff3d9a; /* attack, steal, aggression */
+  --cyan: #24e0c5; /* defence, fortify, safety */
+  --danger: #ff4b3e; /* stage 3 only. nothing else. */
 
-  /* Monad's violet, used for structure and the chain itself. */
-  --violet: #836ef9;
-  --violet-dim: #4a3d99;
-
-  /* Stage 3. Danger, and nothing else may use it. */
-  --danger: #ff4d6d;
+  --outline: #000000;
 
   --background: var(--ground);
   --foreground: var(--ink);
@@ -38,22 +37,23 @@
 
 @theme inline {
   --color-ground: var(--ground);
+  --color-arena: var(--arena);
   --color-surface: var(--surface);
-  --color-line: var(--line);
   --color-ink: var(--ink);
   --color-ink-muted: var(--ink-muted);
   --color-ink-faint: var(--ink-faint);
   --color-crown: var(--crown);
-  --color-crown-dim: var(--crown-dim);
   --color-violet: var(--violet);
-  --color-violet-dim: var(--violet-dim);
+  --color-magenta: var(--magenta);
+  --color-cyan: var(--cyan);
   --color-danger: var(--danger);
+  --color-outline: var(--outline);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
 
+  --font-display: var(--font-bungee);
   --font-sans: var(--font-archivo);
-  --font-mono: var(--font-archivo);
 }
 
 body {
@@ -62,35 +62,83 @@ body {
   font-family: var(--font-archivo), system-ui, sans-serif;
 }
 
-/*
- * Figures must not reflow as they tick. The counters change 2.5 times a second;
- * proportional digits would jitter, which reads as a broken display from the
- * back of a hall rather than a fast one.
+/* ── Brutalist primitives ─────────────────────────────────────────────────
+ * Hard shadows, never blurred. A blurred shadow says "soft UI card"; an offset
+ * black slab says "sticker on a cabinet". That distinction is the whole style.
  */
+.slab {
+  border: 3px solid var(--outline);
+  box-shadow: 6px 6px 0 var(--outline);
+}
+.slab-sm {
+  border: 2px solid var(--outline);
+  box-shadow: 3px 3px 0 var(--outline);
+}
+.slab-lg {
+  border: 4px solid var(--outline);
+  box-shadow: 10px 10px 0 var(--outline);
+}
+
+/* Press physics: the slab travels into its own shadow. */
+.pressable {
+  transition:
+    transform 90ms cubic-bezier(0.2, 0, 0, 1),
+    box-shadow 90ms cubic-bezier(0.2, 0, 0, 1);
+}
+.pressable:active:not(:disabled) {
+  transform: translate(6px, 6px);
+  box-shadow: 0 0 0 var(--outline);
+}
+.pressable:hover:not(:disabled) {
+  transform: translate(-1px, -1px);
+  box-shadow: 8px 8px 0 var(--outline);
+}
+
+.display {
+  font-family: var(--font-bungee), var(--font-archivo), sans-serif;
+  letter-spacing: 0.01em;
+  line-height: 0.95;
+}
+
 .tabular-nums {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
 }
 
-/*
- * Display setting for the numbers that carry the page. Archivo's heavier grades
- * tighten up considerably at size, so the tracking is pulled in by hand.
- */
-.display {
-  font-weight: 800;
-  letter-spacing: -0.035em;
-  line-height: 0.9;
+/* Type that shouts. Layered hard shadow, no blur — arcade marquee lettering. */
+.stroked {
+  text-shadow:
+    3px 3px 0 var(--outline),
+    -1px -1px 0 var(--outline),
+    1px -1px 0 var(--outline),
+    -1px 1px 0 var(--outline);
 }
 
-/* The crown pulses only while someone holds it — motion that means something. */
-@keyframes crown-breathe {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.72; }
+/* ── Motion ───────────────────────────────────────────────────────────────
+ * Every animation here is tied to something happening on chain. None of it is
+ * ambient decoration.
+ */
+@keyframes pulse-crown {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
 }
-.breathe {
-  animation: crown-breathe 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+.pulse-crown { animation: pulse-crown 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
+
+@keyframes orbit-dash {
+  to { stroke-dashoffset: -24; }
 }
+.orbit-dash { animation: orbit-dash 0.9s linear infinite; }
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-3px) rotate(-1deg); }
+  75% { transform: translateX(3px) rotate(1deg); }
+}
+.shake { animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
 
 @media (prefers-reduced-motion: reduce) {
-  .breathe { animation: none; }
+  .pulse-crown,
+  .orbit-dash,
+  .shake { animation: none; }
+  .pressable { transition: none; }
 }

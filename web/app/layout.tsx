@@ -1,17 +1,25 @@
 import type { Metadata } from "next";
-import { Archivo } from "next/font/google";
+import { Archivo, Bungee } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 
 /*
- * Archivo, one family, committed — not the Geist/Inter default.
+ * Bungee for display, Archivo for reading.
  *
- * This is a scoreboard before it is an app: the reign counter has to read from
- * the back of a hall, so the type needs width and weight rather than the narrow
- * neutrality of the usual UI grotesques. Archivo carries a genuine expanded
- * range and holds up large. A single family used with real weight contrast
- * beats a timid display/body pair.
+ * Bungee is a signage face — chunky, all-caps, built for arcade marquees and
+ * shopfronts. It does the one job the brief demands: someone should know this is
+ * a game from the wordmark alone, before reading a sentence. It is unusable at
+ * body size, which is exactly why it is paired rather than used alone.
+ *
+ * Archivo carries everything you actually read, and its tabular figures keep the
+ * counters from jittering as they tick 2.5 times a second.
  */
+const bungee = Bungee({
+  variable: "--font-bungee",
+  subsets: ["latin"],
+  weight: ["400"],
+});
+
 const archivo = Archivo({
   variable: "--font-archivo",
   subsets: ["latin"],
@@ -28,7 +36,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${archivo.variable} h-full antialiased`}
+      className={`${archivo.variable} ${bungee.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-ground text-ink">
         <Providers>{children}</Providers>
