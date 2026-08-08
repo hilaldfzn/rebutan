@@ -57,7 +57,21 @@ for artifact in "${targets[@]}"; do
     name=$(basename "$artifact" .json)
     checked=$((checked + 1))
 
-    if found=$(cast disassemble "$runtime" 2>/dev/null | grep -oE "$FORBIDDEN" | sort -u); then
+    # Strip the CBOR metadata trailer before disassembling. solc appends it to
+    # the runtime blob and encodes its length in the final two bytes. It is DATA,
+    # not code — disassembling it decodes arbitrary bytes as opcodes and reports
+    # phantom TLOAD/MCOPY hits that the compiler never emitted. Without this,
+    # the guard cries wolf and gets ignored, which is worse than no guard.
+    hex=${runtime#0x}
+    tail_len=$((16#${hex: -4}))
+    strip_chars=$(((tail_len + 2) * 2))
+    if [ "$tail_len" -gt 0 ] && [ "$strip_chars" -lt "${#hex}" ]; then
+        code="0x${hex:0:${#hex}-strip_chars}"
+    else
+        code="$runtime" # implausible length — check the whole blob rather than skip
+    fi
+
+    if found=$(cast disassemble "$code" 2>/dev/null | grep -oE "$FORBIDDEN" | sort -u); then
         if [ -n "$found" ]; then
             echo "✖ $name — forbidden opcode(s) in runtime bytecode:"
             echo "$found" | sed 's/^/    /'
